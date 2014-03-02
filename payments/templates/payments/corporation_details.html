@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-sm-12"><h1>{{ corporation.name  }}</h1></div>
+    </div>
+    <div class="row">
+        <div class="col-sm-3">
+
+            <div class="panel panel-info">
+                <div class="panel-heading" dir="rtl">
+                    <h3 class="panel-title">סה"כ  </h3>
+                </div>
+                <span class="count"><h2 align="center">{{ corporation.payments_count }} תשלומים </h2></span>
+            </div>
+        </div>
+        <div class="col-sm-3">
+            <div class="panel panel-info">
+                <div class="panel-heading" dir="rtl">
+                    <h3 class="panel-title"> דרוג</h3>
+                </div>
+                <span class="count"><h2 align="center">מקום XX </h2></span>
+            </div>
+        </div>
+        <div class="col-sm-3">
+            <div class="panel panel-info">
+                <div class="panel-heading" dir="rtl">
+                    <h3 class="panel-title">איחור ממוצע לתשלום</h3>
+                </div>
+                <span class="count"><h2 align="center">{{ corporation.lateness_average }} ימים</h2></span>
+            </div>
+        </div>
+        <div class="col-sm-3">
+            <div class="panel panel-info">
+                <div class="panel-heading" dir="rtl">
+                    <h3 class="panel-title">ממוצע אשראי לתשלום</h3>
+                </div>
+                <span class="count"><h2 align="center">{{ corporation.credit_average }} ימים</h2></span>
+            </div>
+        </div>
+     </div>
+</div>
+{% endblock %}

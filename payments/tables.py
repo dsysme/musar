@@ -7,15 +7,29 @@ from payments.models import Payment, Corporation
 class CorporationTable(tables.Table):
     days_late_average = columns.TemplateColumn('{{ record.lateness_average }}')
     days_credit_average = columns.TemplateColumn('{{ record.credit_average }}')
-    name = columns.LinkColumn('compare_corporation', kwargs={'corporation': A('slug_name')}, verbose_name='corporation') #, kwargs={'corporation': A('name')}
-#                               , 
-#         kwargs={'corporation': A('name')})
-#     name = columns.TemplateColumn(
-#         accessor='corporation.name',
-#         verbose_name='Name',
-#         template_name='payments/corporation_link.html',
-#         orderable=False
-#     )
+    name = columns.LinkColumn('corporation_details', kwargs={'corporation': A('cid')}, verbose_name='corporation') #, kwargs={'corporation': A('name')}
+#
+    class Meta:
+        model = Corporation
+  
+        exclude = (
+            'url',
+            'email',
+            'slug_name'
+        )    
+        sequence = (
+            'cid',
+            'name',
+            'days_late_average',
+            'days_credit_average',
+        )
+        attrs = {"class": "table"}   
+
+class MyCorporationTable(tables.Table):
+    days_late_average = columns.TemplateColumn('{{ record.lateness_average }}')
+    days_credit_average = columns.TemplateColumn('{{ record.credit_average }}')
+    name = columns.LinkColumn('compare_corporation', kwargs={'corporation': A('cid')}, verbose_name='corporation') #, kwargs={'corporation': A('name')}
+#
     class Meta:
         model = Corporation
   

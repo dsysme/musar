@@ -14,12 +14,14 @@ from django.views.generic.edit import CreateView, FormView
 from django_tables2 import SingleTableView
 from payments.forms import AddPaymentForm, LoadFileForm
 from payments.models import Corporation, Payment
-from payments.tables import PaymentsTable, PaymentsPartialTable, CorporationTable
 from django.template import RequestContext
 import logging
 from payments.csv_models import PaymentCsvModel
 from django.http import HttpResponseNotFound
 from django.utils.translation import ugettext as _
+from payments.tables import ( 
+    PaymentsTable, PaymentsPartialTable, CorporationTable, MyCorporationTable
+)
 
 
 # Get an instance of a logger
@@ -97,7 +99,7 @@ def settings(a_request, username):
    
 @login_required 
 def compare_view(a_request, corporation):
-    c = get_object_or_404(Corporation, slug_name=corporation)
+    c = get_object_or_404(Corporation, cid=corporation)
     user = User.objects.get(username=a_request.user.username)
     profile = user.get_profile()
     assert c != None
@@ -107,11 +109,25 @@ def compare_view(a_request, corporation):
     	'user_profile': profile}
     )
 
+# NO login_required    
+def corporation_details(a_request, corporation):
+    c = get_object_or_404(Corporation, cid=corporation)
+    assert c != None
+    return render(a_request, 'payments/corporation_details.html', 
+        { 'corporation': c }
+    )
+
+# NO login_required    
+def corporation_list():
+    model = Corporation
+    template_name = 'payments/corporations_list.html'
+    table_class = CorporationTable
+
 # login_required
 class MyCorporationsList(SingleTableView):
 	model = Corporation
 	template_name = 'payments/my_corporations.html'
-	table_class = CorporationTable
+	table_class = MyCorporationTable
 	
 	def get_queryset(self):
 		# filter for current user

@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.db import models
 # from django.utils.datetime_safe import datetime, date
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 from django.db.models.signals import post_save
 from django.template.defaultfilters import slugify
 import json
@@ -38,9 +38,10 @@ class Corporation(models.Model):
         max_length=200,
         unique=True,
         help_text="Corporation's ID",
+        verbose_name=_("Corporation ID")
     )
 
-    name = models.CharField(max_length=200, unique=True)
+    name = models.CharField(max_length=200, unique=True, verbose_name=_("Name"))
     slug_name = models.CharField(max_length=200, unique=True, null=True, blank=True)
     url = models.URLField(null=True, blank=True)
     email = models.EmailField(null=True, blank=True)
@@ -89,6 +90,16 @@ class Corporation(models.Model):
         if self.payments_count == 0:
             return 0
         return self.total_credit_days/self.payments_count
+    
+    @property
+    def score(self):
+        score = total_credit_days + 2 * total_late_days
+        return score
+    
+    @property
+    def rating(self):
+        # TODO might be performance issue here http://stackoverflow.com/questions/16322513/django-order-by-a-property
+        rating_list = sorted(self.objects.all(), key=lambda m: m.score)
         
 
 class PaymentType(object):

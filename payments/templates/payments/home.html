@@ -6,7 +6,7 @@
 <div class="container">
     <div class="row">
         <div class="col-sm-8">
-            <h3  align="right">{% trans 'My Home Page' %}</h3>
+            <h3  align="right">{% blocktrans %}My Home Page{% endblocktrans %}</h3>
         </div>
         <div class="col-sm-2">
             <a href="{% url 'add_payments_file' user.username %}">
@@ -24,7 +24,7 @@
 </div>
 <div class="panel panel-warning" dir="rtl">
     <div class="panel-heading">
-        <h3 class="panel-title">תשלומים מאחרים</h3>
+        <h3 class="panel-title">{% blocktrans %}Extra Credit Payments{% endblocktrans %}</h3>
     </div>
     <div class="panel-body">
             {% render_table table %}
@@ -33,7 +33,7 @@
 
 <div class="panel panel-info" dir="rtl">
     <div class="panel-heading" dir="rtl">
-        <h3 class="panel-title">תשלומים קרובים</h3>
+        <h3 class="panel-title">{% blocktrans %}Near-due Payments{%endblocktrans %}</h3>
     </div>
     <div class="panel-body">
         {% render_table table_neardue_payments %}

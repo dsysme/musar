@@ -18,7 +18,7 @@ from django.template import RequestContext
 import logging
 from payments.csv_models import PaymentCsvModel
 from django.http import HttpResponseNotFound
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 from payments.tables import ( 
     PaymentsTable, PaymentsPartialTable, CorporationTable, MyCorporationTable
 )
@@ -153,7 +153,7 @@ class CorporationsList(SingleTableView):
         """ Add title
         """
         context = super(CorporationsList, self).get_context_data(**kwargs)
-        context['title'] = "Corporations List"
+        context['title'] = _("Corporations List")
         return context
 	
 

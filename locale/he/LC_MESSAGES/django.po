@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-03-03 15:19+0200\n"
+"POT-Creation-Date: 2014-03-03 16:25+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,7 +30,7 @@ msgstr "נקה"
 msgid "Change:"
 msgstr ""
 
-#: .\payments\models.py:41 .\payments\models.py:137
+#: .\payments\models.py:41 .\payments\models.py:140 .\payments\tables.py:9
 msgid "Corporation ID"
 msgstr "מספר תאגיד"
 
@@ -38,74 +38,78 @@ msgstr "מספר תאגיד"
 msgid "Name"
 msgstr "שם"
 
-#: .\payments\models.py:142
+#: .\payments\models.py:145
 msgid "Input date"
 msgstr "מועד הזנה"
 
-#: .\payments\models.py:143
+#: .\payments\models.py:146
 msgid "Created At"
 msgstr "נוצר ב"
 
-#: .\payments\models.py:148
+#: .\payments\models.py:151
 msgid "Created By"
 msgstr "נוצר על ידי"
 
-#: .\payments\models.py:156
+#: .\payments\models.py:159
 msgid "Amount"
 msgstr "סכום לתשלום"
 
-#: .\payments\models.py:161
+#: .\payments\models.py:164
 msgid "Description"
 msgstr "תיאור"
 
-#: .\payments\models.py:165
+#: .\payments\models.py:168
 msgid "Due Date"
 msgstr "מועד אחרון לתשלום"
 
-#: .\payments\models.py:169
+#: .\payments\models.py:172
 msgid "Supply Date"
 msgstr "מועד אספקה"
 
-#: .\payments\models.py:174
+#: .\payments\models.py:177
 msgid "Order Date"
 msgstr "מועד ביצוע הזמנה"
 
-#: .\payments\models.py:180
+#: .\payments\models.py:183
 msgid "Pay Date"
 msgstr "מועד פרעון"
 
-#: .\payments\models.py:225
+#: .\payments\models.py:228
 msgid "Payment"
 msgstr "תשלום"
 
-#: .\payments\models.py:226
+#: .\payments\models.py:229
 #: .\payments\templates\payments\compare_corporation.html:16
 #: .\payments\templates\payments\compare_corporation.html:56
 #: .\payments\templates\payments\compare_corporation.html:65
 msgid "Payments"
 msgstr "תשלומים"
 
-#: .\payments\tables.py:9 .\payments\tables.py:30 .\payments\tables.py:51
+#: .\payments\tables.py:10 .\payments\tables.py:33 .\payments\tables.py:57
 #: .\payments\templates\payments\compare_corporation.html:30
 #: .\payments\templates\payments\compare_corporation.html:71
 msgid "Avg. of Extra Credit Days"
 msgstr "ימי איחור בממוצע"
 
-#: .\payments\tables.py:10 .\payments\tables.py:31 .\payments\tables.py:52
+#: .\payments\tables.py:11 .\payments\tables.py:34 .\payments\tables.py:58
 #: .\payments\templates\payments\compare_corporation.html:38
 #: .\payments\templates\payments\compare_corporation.html:79
 msgid "Avg. of Credit Days"
 msgstr "ימי אשראי בממוצע"
 
-#: .\payments\tables.py:11 .\payments\tables.py:32
+#: .\payments\tables.py:12 .\payments\tables.py:35
+msgid "Rating"
+msgstr "דירוג"
+
+#: .\payments\tables.py:13 .\payments\tables.py:36
 msgid "corporation"
 msgstr "מספר תאגיד"
 
-#: .\payments\tables.py:79
+#: .\payments\tables.py:85
 msgid "Send Reminder"
 msgstr "שלח תזכורת"
 
-#: .\payments\tables.py:83
+#: .\payments\tables.py:89
 msgid "Last Reminder"
 msgstr "תזכורת אחרונה"
 

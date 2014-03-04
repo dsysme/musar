@@ -6,8 +6,10 @@ from django.utils.translation import ugettext_lazy as _
 
 
 class CorporationTable(tables.Table):
+    cid = columns.TemplateColumn('{{ record.cid }}', verbose_name=_("Corporation ID"))
     days_late_average = columns.TemplateColumn('{{ record.lateness_average }}', verbose_name=_("Avg. of Extra Credit Days"))
     days_credit_average = columns.TemplateColumn('{{ record.credit_average }}', verbose_name=_("Avg. of Credit Days"))
+    rating = columns.TemplateColumn('{{ record.rating }}', verbose_name=_("Rating"))
     name = columns.LinkColumn('corporation_details', kwargs={'corporation': A('cid')}, verbose_name=_('corporation'))#, kwargs={'corporation': A('name')}
     
     class Meta:
@@ -16,21 +18,23 @@ class CorporationTable(tables.Table):
         exclude = (
             'url',
             'email',
-            'slug_name'
+            'slug_name',
         )    
         sequence = (
             'cid',
             'name',
+            'rating',
             'days_late_average',
-            'days_credit_average',
+            'days_credit_average'
         )
         attrs = {"class": "table"}   
 
 class MyCorporationTable(tables.Table):
     days_late_average = columns.TemplateColumn('{{ record.lateness_average }}', verbose_name=_("Avg. of Extra Credit Days"))
     days_credit_average = columns.TemplateColumn('{{ record.credit_average }}', verbose_name=_("Avg. of Credit Days"))
+    rating = columns.TemplateColumn('{{ record.rating }}', verbose_name=_("Rating"))
     name = columns.LinkColumn('compare_corporation', kwargs={'corporation': A('cid')}, verbose_name=_('corporation'))
-#
+
     class Meta:
         model = Corporation
   
@@ -42,10 +46,12 @@ class MyCorporationTable(tables.Table):
         sequence = (
             'cid',
             'name',
+            'rating',
             'days_late_average',
-            'days_credit_average',
+            'days_credit_average'
         )
         attrs = {"class": "table"}   
+  
         
 class PaymentsTable(tables.Table):
     days_late = columns.TemplateColumn('{{ record.extra_credit_days }}', verbose_name=_("Avg. of Extra Credit Days"))

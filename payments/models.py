@@ -31,6 +31,7 @@ class ShareOption(object):
     )
 
 
+
 class Corporation(models.Model):
     """ Corporation profile """
     cid = models.CharField(
@@ -46,10 +47,6 @@ class Corporation(models.Model):
     url = models.URLField(null=True, blank=True)
     email = models.EmailField(null=True, blank=True)
     
-    def save(self, *args, **kwargs):
-        self.slug_name = slugify(self.name)
-        super(Corporation, self).save(*args, **kwargs)
-
 
     def __unicode__(self):
         return self.name
@@ -93,14 +90,26 @@ class Corporation(models.Model):
     
     @property
     def score(self):
-        score = total_credit_days + 2 * total_late_days
+        score = self.total_credit_days + 2 * self.total_late_days
         return score
     
     @property
     def rating(self):
         # TODO might be performance issue here http://stackoverflow.com/questions/16322513/django-order-by-a-property
-        rating_list = sorted(self.objects.all(), key=lambda m: m.score)
-        
+        list = sorted(Corporation.objects.all(), key=lambda m: m.score)
+        index = list.index(self)
+        return index
+
+
+def get_best_corporations():
+    list = sorted(Corporation.objects.all(), key=lambda m: m.score)
+    return list[0:3]
+
+
+def get_worst_corporations():
+    list = sorted(Corporation.objects.all(), key=lambda m: m.score, reverse=True)
+    return list[0:3]
+
 
 class PaymentType(object):
     """indication if this is payment to or payment by"""
@@ -247,12 +256,14 @@ class UserProfile(models.Model):
          
     @property
     def neardue_payments(self):
-        neardue_payments = []
-        for payment in self.user.payment_set.all():
-            days_till_pay = (payment.due_date - date.today()).days
-            print "days", days_till_pay
-            if days_till_pay >= 0 and days_till_pay <= 6:
-                neardue_payments.append(payment)
+        neardue_payments = [
+            payment for payment in self.user.payment_set.all() 
+                if (payment.due_date - date.today()).days >= 0 and (payment.due_date - date.today()).days <= 6]
+#         for payment in self.user.payment_set.all():
+#             days_till_pay = (payment.due_date - date.today()).days
+#             print "days", days_till_pay
+#             if days_till_pay >= 0 and days_till_pay <= 6:
+#                 neardue_payments.append(payment)
             
 #         neardue_payments = Payment.objects.filter(due_date__range=(startdate, enddate))
 #         neardue_payments = Payment.objects.filter(due_date__range=(startdate, enddate))

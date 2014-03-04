@@ -11,9 +11,11 @@ from django.utils.decorators import method_decorator
 from django.views.generic import TemplateView
 #from django.views.generic.detail import DetailView
 from django.views.generic.edit import CreateView, FormView
-from django_tables2 import SingleTableView
+from django_tables2 import SingleTableView, RequestConfig
 from payments.forms import AddPaymentForm, LoadFileForm
-from payments.models import Corporation, Payment
+from payments.models import (
+    Corporation, Payment, get_best_corporations, get_worst_corporations 
+)
 from django.template import RequestContext
 import logging
 from payments.csv_models import PaymentCsvModel
@@ -32,7 +34,16 @@ logger = logging.getLogger(__name__)
 
 
 def index(a_request):
-    return render(a_request, 'payments/index.html')
+    context = RequestContext(a_request)
+    best = get_best_corporations()
+    context['first'] = best[0]
+    context['second'] = best[1]
+    context['third'] = best[2]
+    worst = get_worst_corporations()
+    context['last'] = worst[0]
+    context['last_prev'] = worst[1]
+    context['last_prev_prev'] = worst[2]
+    return render(a_request, 'payments/index.html', context_instance=context)
 
 
 def register(a_request):
@@ -60,16 +71,20 @@ class HomeView(SingleTableView):
         """ Adds tables of late and near due payments to the context
         """
         context = super(HomeView, self).get_context_data(**kwargs)
-		# add overview payments
-        context['table'] = \
-        	PaymentsPartialTable(self.request.user.get_profile().overdue_payments)
+
+        # add overview payments
+        table = PaymentsPartialTable(
+            self.request.user.get_profile().overdue_payments
+        )
+        RequestConfig(self.request, paginate={"per_page": 3}).configure(table) 
+        context['table'] = table
+        	
         # add payments due in 6 days
-        startdate = datetime.today()
-        enddate = startdate + timedelta(days=6)
-        neardue_payments_data = Payment.objects.filter(
-            due_date__range=[startdate, enddate])
-        context['table_neardue_payments'] = PaymentsPartialTable(
-            neardue_payments_data)
+        table_1 = PaymentsPartialTable(
+            self.request.user.get_profile().neardue_payments
+        )
+        RequestConfig(self.request, paginate={"per_page": 3}).configure(table_1)
+        context['table_neardue_payments'] = table_1
         return context
 
     #  This is how you decorate class see:
@@ -100,14 +115,16 @@ def settings(a_request, username):
 @login_required 
 def compare_view(a_request, corporation):
     c = get_object_or_404(Corporation, cid=corporation)
+    assert c != None
     user = User.objects.get(username=a_request.user.username)
     profile = user.get_profile()
-    assert c != None
     return render(a_request, 'payments/compare_corporation.html', 
     	{'user': user, 
     	'corporation': c, 
+        'rating': c.rating,
     	'user_profile': profile}
     )
+
 
 # NO login_required    
 def corporation_details(a_request, corporation):
@@ -117,11 +134,14 @@ def corporation_details(a_request, corporation):
         { 'corporation': c }
     )
 
+
 # NO login_required    
-def corporation_list():
+def corporation_list(a_request):
     model = Corporation
     template_name = 'payments/corporations_list.html'
     table_class = CorporationTable
+    paginate_by = 10
+
 
 # login_required
 class MyCorporationsList(SingleTableView):

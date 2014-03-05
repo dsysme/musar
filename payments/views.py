@@ -14,7 +14,8 @@ from django.views.generic.edit import CreateView, FormView
 from django_tables2 import SingleTableView, RequestConfig
 from payments.forms import AddPaymentForm, LoadFileForm
 from payments.models import (
-    Corporation, Payment, get_best_corporations, get_worst_corporations 
+    Corporation, Payment, UserProfile, get_best_corporations, 
+    get_worst_corporations 
 )
 from django.template import RequestContext
 import logging
@@ -140,23 +141,25 @@ def corporation_list(a_request):
     model = Corporation
     template_name = 'payments/corporations_list.html'
     table_class = CorporationTable
-    paginate_by = 10
+    table_pagination = {"per_page": 10}
 
 
 # login_required
 class MyCorporationsList(SingleTableView):
-	model = Corporation
-	template_name = 'payments/my_corporations.html'
-	table_class = MyCorporationTable
+    model = Corporation
+    template_name = 'payments/my_corporations.html'
+    table_class = MyCorporationTable
+    table_pagination = {"per_page": 10}
 	
-	def get_queryset(self):
+    def get_queryset(self):
 		# filter for current user
-		return Corporation.objects.all()
+		return UserProfile.objects.get(user=self.request.user).corporations.all()
 
     # This is how you decorate class see:
     # https://docs.djangoproject.com/en/1.5/topics/class-based-views/intro/
-	@method_decorator(login_required)
-	def dispatch(self, *args, **kwargs):
+
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
 		return super(MyCorporationsList, self).dispatch(*args, **kwargs)
 
 
@@ -165,9 +168,8 @@ class CorporationsList(SingleTableView):
     model = Corporation
     template_name = 'payments/table.html'
     table_class = CorporationTable
-    
-    def get_queryset(self):
-        return Corporation.objects.all()
+    table_pagination = {"per_page": 10}
+    table_data = Corporation.objects.all()
     
     def get_context_data(self, **kwargs):
         """ Add title
@@ -253,48 +255,6 @@ def save_payments_list_view(a_request, username):
 	return HttpResponseRedirect(reverse_lazy('payments',
         kwargs={'username': username})
     )
-
-
-# class LoadPaymentsFileView(FormView):
-#     form_class = LoadFileForm
-#     template_name = 'payments/loadpaymentsfile_form.html'
-# 
-#     def get_form_kwargs(self):
-#         kwargs = super(LoadPaymentsFileView, self).get_form_kwargs()
-#         kwargs['user'] = self.request.user
-# #         assert False
-#         return kwargs
-# 
-#     def form_valid(self, form):
-#         payments = form.get_payments()
-#         self.request.session['payments'] = payments
-#         logger.info(self.request.session.get('payments'))
-#         username = form.user
-#         self.request.session['username'] = username
-#         assert False
-#         return HttpResponseRedirect(
-#             reverse_lazy('file', kwargs={'username': username,
-#                                          'payments': payments}))
-# 
-#     # XXX TODO *args, **kwargs might cause problems?
-#     def post(self, *args, **kwargs):
-#         form = LoadPaymentsFileForm(request.POST)
-#         if form.is_valid():
-#             payments = form.get_payments()
-#             self.request.session['payments'] = payments
-#             logger.info(self.request.session.get('payments'))
-#             username = form.user
-#             self.request.session['username'] = username
-#             assert False
-#         return HttpResponseRedirect(
-#             reverse_lazy('file', kwargs={'username': username,
-#                                          'payments': payments}))
-# 
-#     # This is how you decorate class see:
-#     # https://docs.djangoproject.com/en/1.5/topics/class-based-views/intro/
-#     @method_decorator(login_required)
-#     def dispatch(self, *args, **kwargs):
-#         return super(LoadPaymentsFileView, self).dispatch(*args, **kwargs)
 
 
 # login_required

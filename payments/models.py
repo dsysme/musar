@@ -191,6 +191,18 @@ class Payment(models.Model):
         null=True,
         blank=True,
     )
+    
+    def save(self, *args, **kwargs):
+        # add the corporation to the owners corporations list
+        profile = UserProfile.objects.get(user=self.owner)
+        assert profile is not None
+        corporation = Corporation.objects.get(cid=self.corporation.cid)
+        assert corporation is not None
+        if corporation not in profile.corporations.all():
+            profile.corporations.add(
+                Corporation.objects.get(cid=self.corporation.cid)
+            )
+        super(Payment, self).save(*args, **kwargs)
 
     def __unicode__(self):
         return self.title + " " + self.owner.username + " " + self.corporation.name + " " + str(self.extra_credit_days) + " " + str(self.supply_date) +  " " + str(self.due_date) + " " + str(self.pay_date) 
@@ -237,7 +249,8 @@ class Payment(models.Model):
 
 class UserProfile(models.Model):  
     user = models.OneToOneField(User) 
-    neardue_days = models.DecimalField(default=6, decimal_places=0, max_digits=2) 
+    neardue_days = models.DecimalField(default=6, decimal_places=0, max_digits=2)
+    corporations = models.ManyToManyField(Corporation, null=True, blank=True)
 
     def __str__(self):  
           return "%s's profile" % self.user  
@@ -258,18 +271,10 @@ class UserProfile(models.Model):
     def neardue_payments(self):
         neardue_payments = [
             payment for payment in self.user.payment_set.all() 
-                if (payment.due_date - date.today()).days >= 0 and (payment.due_date - date.today()).days <= 6]
-#         for payment in self.user.payment_set.all():
-#             days_till_pay = (payment.due_date - date.today()).days
-#             print "days", days_till_pay
-#             if days_till_pay >= 0 and days_till_pay <= 6:
-#                 neardue_payments.append(payment)
-            
-#         neardue_payments = Payment.objects.filter(due_date__range=(startdate, enddate))
-#         neardue_payments = Payment.objects.filter(due_date__range=(startdate, enddate))
-#                                                   ,
-#             due_date__range=[startdate, enddate])
- 
+                if (payment.due_date - date.today()).days >= 0 and 
+                   (payment.due_date - date.today()).days <= 6
+            ]
+
         return neardue_payments
 
     @property       

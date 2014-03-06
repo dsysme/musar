@@ -30,8 +30,8 @@ class CorporationTable(tables.Table):
         attrs = {"class": "table"}   
 
 class MyCorporationTable(tables.Table):
-    days_late_average = columns.TemplateColumn('{{ record.lateness_average }}', verbose_name=_("Avg. of Extra Credit Days"))
-    days_credit_average = columns.TemplateColumn('{{ record.credit_average }}', verbose_name=_("Avg. of Credit Days"))
+#     days_late_average = columns.TemplateColumn('{{ record.lateness_average }}', verbose_name=_("Avg. of Extra Credit Days"))
+#     days_credit_average = columns.TemplateColumn('{{ record.credit_average }}', verbose_name=_("Avg. of Credit Days"))
     rating = columns.TemplateColumn('{{ record.rating }}', verbose_name=_("Rating"))
     name = columns.LinkColumn('compare_corporation', kwargs={'corporation': A('cid')}, verbose_name=_('corporation'))
 
@@ -47,15 +47,15 @@ class MyCorporationTable(tables.Table):
             'cid',
             'name',
             'rating',
-            'days_late_average',
-            'days_credit_average'
+#             'days_late_average',
+#             'days_credit_average'
         )
         attrs = {"class": "table"}   
   
         
 class PaymentsTable(tables.Table):
-    days_late = columns.TemplateColumn('{{ record.extra_credit_days }}', verbose_name=_("Avg. of Extra Credit Days"))
-    days_credit = columns.TemplateColumn('{{ record.credit_days }}', verbose_name=_("Avg. of Credit Days"))
+    days_late = columns.TemplateColumn('{{ record.extra_credit_days }}', verbose_name=_("Extra Credit Days"))
+    days_credit = columns.TemplateColumn('{{ record.credit_days }}', verbose_name=_("Credit Days"))
     class Meta:
         model = Payment
         exclude = ('owner', 'created_at')

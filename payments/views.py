@@ -136,12 +136,12 @@ def corporation_details(a_request, corporation):
     )
 
 
-# NO login_required    
-def corporation_list(a_request):
-    model = Corporation
-    template_name = 'payments/corporations_list.html'
-    table_class = CorporationTable
-    table_pagination = {"per_page": 10}
+# # NO login_required    
+# def corporation_list(a_request):
+#     model = Corporation
+#     template_name = 'payments/corporations_list.html'
+#     table_class = CorporationTable
+#     table_pagination = {"per_page": 10}
 
 
 # login_required
@@ -190,7 +190,7 @@ class PaymentsList(SingleTableView):
     def get_queryset(self):
         if self.request.method == 'POST':
             corporation = self.request.POST.get('corporation')
-            payments_list = [payment for payment in self.request.user.payment_set.all() if payment.coporation__eq(corporation)]
+            payments_list = [payment for payment in self.request.user.payment_set.filter(coporation__cid_eq=corporation)]
         else:
             payments_list = [payment for payment in self.request.user.payment_set.all()]
     	return payments_list

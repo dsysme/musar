@@ -7,6 +7,9 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django.db.models.signals import post_save
 from django.template.defaultfilters import slugify
+from django.db.models import Q
+from django.db.models import F
+import numpy
 import json
 
 MAX_LEGAL_CREDIT_DAYS=45
@@ -30,6 +33,33 @@ class ShareOption(object):
         (ALL, 'Share All'),
     )
 
+def regulation_due_date(supply_date):
+    """ Due date might be latter than regulations premits. In such case,
+        the latest date regulation allow is returned. 
+    """
+    max_legal_credit_date = supply_date + \
+        timedelta(days=get_max_legal_credit_days(supply_date))
+        
+    return max_legal_credit_date
+
+
+def get_extra_credit_days(supply_date, due_date, pay_date):
+    # TODO: make sure date is not in future
+    effective_due_date = min(due_date, 
+            regulation_due_date(supply_date)
+    )
+    if (pay_date == None):
+        # ToDo: add test for this if
+        return max(0, (date.today() - effective_due_date).days)
+    return max((pay_date - effective_due_date).days, 0)
+
+def get_credit_days(supply_date, pay_date):
+        if (pay_date == None):
+            # ToDo: add test for this if
+            return max(0, (date.today() - supply_date).days)
+        return max(0, (pay_date - supply_date).days)
+
+    
 
 class Corporation(models.Model):
     """ Corporation profile """
@@ -45,7 +75,6 @@ class Corporation(models.Model):
     slug_name = models.CharField(max_length=200, unique=True, null=True)
     url = models.URLField(null=True, blank=True)
     email = models.EmailField(null=True, blank=True)
-    
 
     def __unicode__(self):
         return self.name
@@ -54,42 +83,52 @@ class Corporation(models.Model):
     def payments_count(self):
         return self.payment_set.count()
     
-    @property
-    def total_late_days(self):
-        days = 0
-        for payment in self.payment_set.all():
-            days += payment.extra_credit_days
-        return days
-#         return self.payment_set.filter()
+    def payments_late_days(self):
+        payments = self.payment_set.filter(Q(due_date__lt=date.today()) & Q(pay_date__isnull=True) | Q(due_date__lt=F('pay_date'))).values('due_date', 'pay_date', 'supply_date')
+        payments_extra_credit_days_list = \
+            [get_extra_credit_days(payment['supply_date'], payment['due_date'], payment['pay_date']) for payment in payments]
+        return payments_extra_credit_days_list
     
-    @property
-    def late_payments_count(self):
-        late_payments_set = [payment for payment in self.payment_set.all() \
-            if payment.extra_credit_days > 0]
-        return len(late_payments_set)
+#     @property
+#     def late_payments_count(self):
+#         late_payments = list(payment for payment in self.payment_set.all() \
+#             if payment.extra_credit_days > 0)
+#         return len(late_payments_set)
     
     @property
     def lateness_average(self):
-        if self.payments_count == 0:
+        list = self.payments_late_days()
+        result = numpy.mean(list)
+        if len(list)==0:
             return 0
-        return self.total_late_days/self.payments_count
+        return int(numpy.mean(list))
     
     @property
-    def total_credit_days(self):
+    def lateness_sum(self):
+        list = self.payments_late_days()
+        return sum(list)
+    
+    def payments_credit_days(self):
         days = 0
-        for payment in self.payment_set.all():
-            days += payment.credit_days
-        return days
-        
+        payments = self.payment_set.filter(Q(supply_date__lt=F('pay_date'))).values('pay_date', 'supply_date')
+        payments_credit_days_list = [get_credit_days(payment['supply_date'], payment['pay_date']) for payment in payments] 
+        return payments_credit_days_list                
+
     @property
     def credit_average(self):
-        if self.payments_count == 0:
+        list = self.payments_credit_days()
+        if len(list)==0:
             return 0
-        return self.total_credit_days/self.payments_count
+        return int(numpy.mean(list))
     
     @property
+    def credit_sum(self):
+        list = self.payments_credit_days()
+        return sum(list)
+
+    @property
     def score(self):
-        score = self.total_credit_days + 2 * self.total_late_days
+        score = self.credit_sum + 2 * self.lateness_sum
         return score
     
     @property
@@ -123,15 +162,6 @@ class PaymentType(object):
 def get_max_legal_credit_days(supply_date):
     # TODO: implement the real computation which is based on supply_date shotef+
     return MAX_LEGAL_CREDIT_DAYS
-
-def regulation_due_date(supply_date):
-    """ Due date might be latter than regulations premits. In such case,
-        the latest date regulation allow is returned. 
-    """
-    max_legal_credit_date = supply_date + \
-        timedelta(days=get_max_legal_credit_days(supply_date))
-        
-    return max_legal_credit_date
 
 
 class Payment(models.Model):

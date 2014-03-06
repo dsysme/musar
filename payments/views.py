@@ -169,7 +169,9 @@ class CorporationsList(SingleTableView):
     template_name = 'payments/table.html'
     table_class = CorporationTable
     table_pagination = {"per_page": 10}
-    table_data = Corporation.objects.all()
+    
+    def get_quearyset(self):
+        return Corporation.objects.all()
     
     def get_context_data(self, **kwargs):
         """ Add title
@@ -228,19 +230,17 @@ def load_payments_from_file_view(a_request, username):
         )
 
 def save_payments_list_view(a_request, username):
-	
-	if a_request.method != 'POST':
+    if a_request.method != 'POST':
 		return HttpResponseNotFound('<h1>No Page Here</h1>')
-	
- 	csv_data = a_request.POST.get('csv_text')
-#  	assert False
-# 	stripped_csv_data = (item.strip() for item in csv_data.split())
- 	payments = PaymentCsvModel.import_data(csv_data.split('\r\n'))
-	for csv_model in payments:
+
+    csv_data = a_request.POST.get('csv_text')
+    payments_csv = PaymentCsvModel.import_data(csv_data.split('\r\n'))
+    payments = []
+    for csv_model in payments_csv:
 		corporation = Corporation.objects.get(cid=csv_model.corporation)
-		assert corporation != None
+		assert corporation != None #TODO handle corporation not exist
 		
-		p = Payment(
+		payments.append(Payment(
 			corporation=corporation, 
     		owner=a_request.user,
     		amount=csv_model.amount,
@@ -248,11 +248,13 @@ def save_payments_list_view(a_request, username):
     		due_date=csv_model.due_date,
     		supply_date=csv_model.supply_date,
     		order_date=csv_model.order_date,
-    		pay_date=csv_model.pay_date
+    		pay_date=csv_model.pay_date)
 		)
 		
-		p.save()
-	return HttpResponseRedirect(reverse_lazy('payments',
+	
+    Payment.objects.bulk_create(payments)
+    
+    return HttpResponseRedirect(reverse_lazy('payments',
         kwargs={'username': username})
     )
 

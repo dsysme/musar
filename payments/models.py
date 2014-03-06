@@ -101,7 +101,7 @@ class Corporation(models.Model):
         result = numpy.mean(list)
         if len(list)==0:
             return 0
-        return int(numpy.mean(list))
+        return numpy.sum(list)/self.payment_set.count()
     
     @property
     def lateness_sum(self):
@@ -119,7 +119,7 @@ class Corporation(models.Model):
         list = self.payments_credit_days()
         if len(list)==0:
             return 0
-        return int(numpy.mean(list))
+        return numpy.sum(list)/self.payment_set.count()
     
     @property
     def credit_sum(self):

@@ -31,7 +31,6 @@ class ShareOption(object):
     )
 
 
-
 class Corporation(models.Model):
     """ Corporation profile """
     cid = models.CharField(
@@ -43,7 +42,7 @@ class Corporation(models.Model):
     )
 
     name = models.CharField(max_length=200, unique=True, verbose_name=_("Name"))
-    slug_name = models.CharField(max_length=200, unique=True, null=True, blank=True)
+    slug_name = models.CharField(max_length=200, unique=True, null=True)
     url = models.URLField(null=True, blank=True)
     email = models.EmailField(null=True, blank=True)
     
@@ -168,10 +167,13 @@ class Payment(models.Model):
     title = models.CharField(
         max_length=400,
         verbose_name=_('Description'),
+        blank=True
         # help_text=_('Short description of the payment. Who? What for?'),
     )
     due_date = models.DateField(
         verbose_name=_('Due Date'),
+        null=True,
+        blank=True
         # help_text=_('The date the payment is due'),
     )
     supply_date = models.DateField(
@@ -183,18 +185,18 @@ class Payment(models.Model):
         verbose_name=_('Order Date'),
         # help_text=_('The date the supply was ordered'),
         null=True,
-        blank=True,
+        blank=True
     )
     pay_date = models.DateField(
         verbose_name=_('Pay Date'),
         # help_text=_('The date the payment was paid'),
         null=True,
-        blank=True,
+        blank=True
     )
     
     def save(self, *args, **kwargs):
         # add the corporation to the owners corporations list
-        profile = UserProfile.objects.get(user=self.owner)
+        profile, is_created = UserProfile.objects.get_or_create(user=self.owner)
         assert profile is not None
         corporation = Corporation.objects.get(cid=self.corporation.cid)
         assert corporation is not None
@@ -250,7 +252,7 @@ class Payment(models.Model):
 class UserProfile(models.Model):  
     user = models.OneToOneField(User) 
     neardue_days = models.DecimalField(default=6, decimal_places=0, max_digits=2)
-    corporations = models.ManyToManyField(Corporation, null=True, blank=True)
+    corporations = models.ManyToManyField(Corporation, null=True)
 
     def __str__(self):  
           return "%s's profile" % self.user  

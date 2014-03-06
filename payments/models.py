@@ -173,6 +173,7 @@ class Payment(models.Model):
         Corporation,
 #         related_name='corporation_payments',
         verbose_name=_('Corporation ID'),
+        db_index = True,
         # help_text=_('The paying corporation'),
     )
     created_at = models.DateTimeField(
@@ -184,6 +185,7 @@ class Payment(models.Model):
         User,
 #         related_name='payments',
         verbose_name=_('Created By'),
+        db_index = True,
         # help_text=_('Who is getting this payment'),
     )
     amount = models.DecimalField(

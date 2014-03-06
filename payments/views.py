@@ -171,8 +171,9 @@ class MyCorporationsList(SingleTableView):
     table_pagination = {"per_page": 10}
 	
     def get_queryset(self):
-		# filter for current user
-		return UserProfile.objects.get(user=self.request.user).corporations.all()
+	   # filter for current user
+       list = Payment.objects.filter(owner=self.request.user).values_list('corporation').distinct()
+       return Corporation.objects.filter(cid__in=list)
 
     # This is how you decorate class see:
     # https://docs.djangoproject.com/en/1.5/topics/class-based-views/intro/

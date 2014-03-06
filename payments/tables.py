@@ -68,7 +68,6 @@ class PaymentsTable(tables.Table):
             'corporation',
             'title',
             'amount',
-            'order_date',
             'supply_date',
             'due_date',
             'pay_date',

@@ -294,25 +294,21 @@ class UserProfile(models.Model):
     @property
     def overdue_payments(self):
         late_payments = [
-            payment for payment in self.user.payment_set.all() 
-                if payment.extra_credit_days > 0 
+            payment for payment in self.user.payment_set.filter(Q(due_date__lt=date.today()) & Q(pay_date__isnull=True))
         ]
         return late_payments
          
     @property
     def neardue_payments(self):
         neardue_payments = [
-            payment for payment in self.user.payment_set.all() 
-                if (payment.due_date - date.today()).days >= 0 and 
-                   (payment.due_date - date.today()).days <= 6
-            ]
+            payment for payment in self.user.payment_set.filter(Q(due_date__lt=date.today() + timedelta(days=6)) & Q(pay_date__isnull=True))
+        ]
 
         return neardue_payments
 
     @property       
     def payments_count_by_corporation(self, corporation):
-        payments_list = [payment for payment in self.user.payment_set.all() \
-            if payment.corporation == corporation]
+        payments_list = [payment for payment in self.user.payment_set.filter(corporation_eq=corporation)]
         return len(payments_list)
            
     @property

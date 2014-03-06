@@ -73,16 +73,17 @@ class HomeView(SingleTableView):
         """
         context = super(HomeView, self).get_context_data(**kwargs)
 
+        user_profile, created = UserProfile.objects.get_or_create(user= self.request.user)
         # add overview payments
         table = PaymentsPartialTable(
-            self.request.user.get_profile().overdue_payments
+            user_profile.overdue_payments
         )
         RequestConfig(self.request, paginate={"per_page": 3}).configure(table) 
         context['table'] = table
         	
         # add payments due in 6 days
         table_1 = PaymentsPartialTable(
-            self.request.user.get_profile().neardue_payments
+            user_profile.neardue_payments
         )
         RequestConfig(self.request, paginate={"per_page": 3}).configure(table_1)
         context['table_neardue_payments'] = table_1
@@ -134,14 +135,6 @@ def corporation_details(a_request, corporation):
     return render(a_request, 'payments/corporation_details.html', 
         { 'corporation': c }
     )
-
-
-# # NO login_required    
-# def corporation_list(a_request):
-#     model = Corporation
-#     template_name = 'payments/corporations_list.html'
-#     table_class = CorporationTable
-#     table_pagination = {"per_page": 10}
 
 
 # login_required

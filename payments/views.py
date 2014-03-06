@@ -15,7 +15,7 @@ from django_tables2 import SingleTableView, RequestConfig
 from payments.forms import AddPaymentForm, LoadFileForm
 from payments.models import (
     Corporation, Payment, UserProfile, get_best_corporations, 
-    get_worst_corporations 
+    get_worst_corporations, get_extra_credit_days, get_credit_days
 )
 from django.template import RequestContext
 import logging
@@ -119,12 +119,38 @@ def compare_view(a_request, corporation):
     c = get_object_or_404(Corporation, cid=corporation)
     assert c != None
     user = User.objects.get(username=a_request.user.username)
-    profile = user.get_profile()
+    payments = Payment.objects.filter(owner=user)\
+        .filter(corporation__cid=corporation)\
+        .values('supply_date', 'due_date', 'pay_date')
+    total_extra_credit = 0
+    total_credit = 0
+    count = len(payments)
+    late_count = 0
+    for payment in payments:
+        extra_credit = get_extra_credit_days(
+            payment['supply_date'], 
+            payment['due_date'], 
+            payment['pay_date']
+        )
+        if (extra_credit > 0):
+            late_count += 1
+            total_extra_credit += extra_credit
+            
+        total_credit += get_credit_days(
+            payment['supply_date'], 
+            payment['pay_date']
+        )
+        
+    extra_credit_avg = total_extra_credit/count
+    credit_avg = total_credit/count
     return render(a_request, 'payments/compare_corporation.html', 
     	{'user': user, 
     	'corporation': c, 
         'rating': c.rating,
-    	'user_profile': profile}
+        'count': count,
+        'late_count': count,
+        'extra_credit_avg': extra_credit_avg,
+        'credit_avg': credit_avg}
     )
 
 

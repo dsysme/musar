@@ -53,16 +53,16 @@
                 <div class="panel-heading" dir="rtl">
                     <h3 class="panel-title">{% blocktrans %}Total{% endblocktrans %}</h3>
                 </div>
-                <span class="count"><h2 align="center">{{ user_profile.payments_count }} {% blocktrans %}Payments{% endblocktrans %}  </h2></span>
+                <span class="count"><h2 align="center">{{ count }} {% blocktrans %}Payments{% endblocktrans %}  </h2></span>
             </div>
         </div>
         <div class="col-sm-3">
 
             <div class="panel panel-info">
                 <div class="panel-heading" dir="rtl">
-                    <h3 class="panel-title">סה"כ מאחרים  </h3>
+                    <h3 class="panel-title">{% trans 'Count Late' %}</h3>
                 </div>
-                <span class="count"><h2 align="center">{{ user_profile.payments_count }} {% blocktrans %}Payments{% endblocktrans %} </h2></span>
+                <span class="count"><h2 align="center">{{ late_count }} {% blocktrans %}Payments{% endblocktrans %} </h2></span>
             </div>
         </div>
         <div class="col-sm-3">
@@ -70,7 +70,7 @@
                 <div class="panel-heading" dir="rtl">
                     <h3 class="panel-title">{% trans 'Avg. of Extra Credit Days' %}</h3>
                 </div>
-                <span class="count"><h2 align="center">{{ user_profile.lateness_average }} {% blocktrans %}days{% endblocktrans %}</h2></span>
+                <span class="count"><h2 align="center">{{ extra_credit_avg }} {% blocktrans %}days{% endblocktrans %}</h2></span>
             </div>
         </div>
         <div class="col-sm-3">
@@ -78,7 +78,7 @@
                 <div class="panel-heading" dir="rtl">
                     <h3 class="panel-title">{% trans 'Avg. of Credit Days' %}</h3>
                 </div>
-                <span class="count"><h2 align="center">{{ user_profile.credit_average }} {% blocktrans %}days{% endblocktrans %}</h2></span>
+                <span class="count"><h2 align="center">{{ credit_avg }} {% blocktrans %}days{% endblocktrans %}</h2></span>
             </div>
         </div>
     </div>

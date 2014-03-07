@@ -60,7 +60,7 @@ def get_credit_days(supply_date, pay_date):
         return max(0, (pay_date - supply_date).days)
 
     
-
+# TODO consult if the method should be properties http://stackoverflow.com/questions/17429159/idiomatic-python-property-or-method
 class Corporation(models.Model):
     """ Corporation profile """
     cid = models.CharField(
@@ -81,12 +81,32 @@ class Corporation(models.Model):
     
     @property
     def payments_count(self):
+        """ returns the count of payments associated with this corporation
+        """
         return self.payment_set.count()
     
+    # don't make this a property if you do the rating will not be shown in view
     def payments_late_days(self):
-        payments = self.payment_set.filter(Q(due_date__lt=date.today()) & Q(pay_date__isnull=True) | Q(due_date__lt=F('pay_date'))).values('due_date', 'pay_date', 'supply_date')
-        payments_extra_credit_days_list = \
-            [get_extra_credit_days(payment['supply_date'], payment['due_date'], payment['pay_date']) for payment in payments]
+        """ return list of the number of late days for each late payment of this 
+            corporation
+        """
+        payments = self.payment_set \
+            .filter(Q(due_date__lt=date.today()) 
+                    & Q(pay_date__isnull=True) 
+                    | Q(due_date__lt=F('pay_date'))) \
+            .values(
+                'due_date', 
+                'pay_date', 
+                'supply_date'
+            )
+            
+        payments_extra_credit_days_list = [
+            get_extra_credit_days(
+                payment['supply_date'], 
+                payment['due_date'], 
+                payment['pay_date']) for payment in payments
+        ]
+        
         return payments_extra_credit_days_list
     
     @property
@@ -99,13 +119,26 @@ class Corporation(models.Model):
     
     @property
     def lateness_sum(self):
+        """ returns the total number of late days in all payments associated
+            with this corporation
+        """ 
         list = self.payments_late_days()
         return sum(list)
     
+    # don't make this a property if you do the rating will not be shown in view
     def payments_credit_days(self):
+        """ return list of the number of credit days for each payment   
+            associated with this corporation
+        """
         days = 0
-        payments = self.payment_set.filter(Q(supply_date__lt=F('pay_date'))).values('pay_date', 'supply_date')
-        payments_credit_days_list = [get_credit_days(payment['supply_date'], payment['pay_date']) for payment in payments] 
+        payments = self.payment_set\
+            .filter(Q(supply_date__lt=F('pay_date')))\
+            .values('pay_date', 'supply_date')
+        payments_credit_days_list = [
+                get_credit_days(
+                    payment['supply_date'], payment['pay_date']
+                ) for payment in payments
+        ] 
         return payments_credit_days_list                
 
     @property
@@ -142,16 +175,6 @@ def get_worst_corporations():
     list = sorted(Corporation.objects.all(), key=lambda m: m.score, reverse=True)
     return list[0:3]
 
-
-class PaymentType(object):
-    """indication if this is payment to or payment by"""
-    IN = 1
-    OUT = 2
-
-    choices = (
-        (IN, 'In'),
-        (OUT, 'Out'),
-    )
 
 def get_max_legal_credit_days(supply_date):
     # TODO: implement the real computation which is based on supply_date shotef+
@@ -238,6 +261,7 @@ class Payment(models.Model):
     def get_absolute_url(self):
         return reverse('add_payments', kwargs={'pk': self.pk})
 
+    #TODO does this should be a class method?
     @classmethod
     def create(cls, corporation, owner, amount, title, due_date, supply_date):
         c = Corporation.objects.get(name=corporation)

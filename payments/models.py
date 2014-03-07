@@ -58,6 +58,24 @@ def get_credit_days(supply_date, pay_date):
             # ToDo: add test for this if
             return max(0, (date.today() - supply_date).days)
         return max(0, (pay_date - supply_date).days)
+    
+
+def overdue_payments(user):
+    late_payments = [
+        payment for payment in user.payment_set.filter(
+                Q(due_date__lt=date.today()) & Q(pay_date__isnull=True)
+        )
+    ]
+    return late_payments
+          
+def neardue_payments(user):
+    neardue_payments = [
+        payment for payment in user.payment_set.filter(
+            Q(due_date__lt=date.today() + timedelta(days=6)) 
+            & Q(pay_date__isnull=True)
+        )
+    ]
+    return neardue_payments
 
     
 # TODO consult if the method should be properties http://stackoverflow.com/questions/17429159/idiomatic-python-property-or-method
@@ -243,17 +261,17 @@ class Payment(models.Model):
         blank=True
     )
     
-    def save(self, *args, **kwargs):
-        # add the corporation to the owners corporations list
-        profile, is_created = UserProfile.objects.get_or_create(user=self.owner)
-        assert profile is not None
-        corporation = Corporation.objects.get(cid=self.corporation.cid)
-        assert corporation is not None
-        if corporation not in profile.corporations.all():
-            profile.corporations.add(
-                Corporation.objects.get(cid=self.corporation.cid)
-            )
-        super(Payment, self).save(*args, **kwargs)
+#     def save(self, *args, **kwargs):
+#         # add the corporation to the owners corporations list
+#         profile, is_created = UserProfile.objects.get_or_create(user=self.owner)
+#         assert profile is not None
+#         corporation = Corporation.objects.get(cid=self.corporation.cid)
+#         assert corporation is not None
+#         if corporation not in profile.corporations.all():
+#             profile.corporations.add(
+#                 Corporation.objects.get(cid=self.corporation.cid)
+#             )
+#         super(Payment, self).save(*args, **kwargs)
 
     def __unicode__(self):
         return self.title + " " + self.owner.username + " " + self.corporation.name + " " + str(self.extra_credit_days) + " " + str(self.supply_date) +  " " + str(self.due_date) + " " + str(self.pay_date) 
@@ -299,75 +317,75 @@ class Payment(models.Model):
         verbose_name_plural = _("Payments")
         
 
-class UserProfile(models.Model):  
-    user = models.OneToOneField(User) 
-    neardue_days = models.DecimalField(default=6, decimal_places=0, max_digits=2)
-    corporations = models.ManyToManyField(Corporation, null=True)
-
-    def __str__(self):  
-          return "%s's profile" % self.user  
-
-    def create_user_profile(sender, instance, created, **kwargs):  
-        if created:  
-           profile, created = UserProfile.objects.get_or_create(user=instance)
-    
-    @property
-    def overdue_payments(self):
-        late_payments = [
-            payment for payment in self.user.payment_set.filter(Q(due_date__lt=date.today()) & Q(pay_date__isnull=True))
-        ]
-        return late_payments
-         
-    @property
-    def neardue_payments(self):
-        neardue_payments = [
-            payment for payment in self.user.payment_set.filter(Q(due_date__lt=date.today() + timedelta(days=6)) & Q(pay_date__isnull=True))
-        ]
-
-        return neardue_payments
-
-    @property       
-    def payments_count_by_corporation(self, corporation):
-        payments_list = [payment for payment in self.user.payment_set.filter(corporation_eq=corporation)]
-        return len(payments_list)
-           
-    @property
-    def payments_count(self):
-        return self.user.payment_set.count()
-    
-    @property
-    def total_late_days(self):
-        days = 0
-        for payment in self.user.payment_set.all():
-            days += payment.extra_credit_days
-        return days
-    
-    @property
-    def late_payments_count(self):
-        late_payments = [payment for payment in self.user.payment_set.all() \
-            if payment.extra_credit_days > 0]
-        return len(late_payments)
-    
-    @property
-    def lateness_average(self):
-        if self.payments_count > 0:
-            return self.total_late_days/self.payments_count
-        return 0
-    
-    @property
-    def total_credit_days(self):
-        days = 0
-        for payment in self.user.payment_set.all():
-            days += payment.credit_days
-        return days
-        
-    @property
-    def credit_average(self):
-        if self.payments_count > 0:
-            return self.total_credit_days/self.payments_count
-        return 0
-
-    post_save.connect(create_user_profile, sender=User) 
+# class UserProfile(models.Model):  
+#     user = models.OneToOneField(User) 
+#     neardue_days = models.DecimalField(default=6, decimal_places=0, max_digits=2)
+#     corporations = models.ManyToManyField(Corporation, null=True)
+# 
+#     def __str__(self):  
+#           return "%s's profile" % self.user  
+# 
+#     def create_user_profile(sender, instance, created, **kwargs):  
+#         if created:  
+#            profile, created = UserProfile.objects.get_or_create(user=instance)
+#     
+#     @property
+#     def overdue_payments(self):
+#         late_payments = [
+#             payment for payment in self.user.payment_set.filter(Q(due_date__lt=date.today()) & Q(pay_date__isnull=True))
+#         ]
+#         return late_payments
+#          
+#     @property
+#     def neardue_payments(self):
+#         neardue_payments = [
+#             payment for payment in self.user.payment_set.filter(Q(due_date__lt=date.today() + timedelta(days=6)) & Q(pay_date__isnull=True))
+#         ]
+# 
+#         return neardue_payments
+# 
+#     @property       
+#     def payments_count_by_corporation(self, corporation):
+#         payments_list = [payment for payment in self.user.payment_set.filter(corporation_eq=corporation)]
+#         return len(payments_list)
+#            
+#     @property
+#     def payments_count(self):
+#         return self.user.payment_set.count()
+#     
+#     @property
+#     def total_late_days(self):
+#         days = 0
+#         for payment in self.user.payment_set.all():
+#             days += payment.extra_credit_days
+#         return days
+#     
+#     @property
+#     def late_payments_count(self):
+#         late_payments = [payment for payment in self.user.payment_set.all() \
+#             if payment.extra_credit_days > 0]
+#         return len(late_payments)
+#     
+#     @property
+#     def lateness_average(self):
+#         if self.payments_count > 0:
+#             return self.total_late_days/self.payments_count
+#         return 0
+#     
+#     @property
+#     def total_credit_days(self):
+#         days = 0
+#         for payment in self.user.payment_set.all():
+#             days += payment.credit_days
+#         return days
+#         
+#     @property
+#     def credit_average(self):
+#         if self.payments_count > 0:
+#             return self.total_credit_days/self.payments_count
+#         return 0
+# 
+#     post_save.connect(create_user_profile, sender=User) 
         
         
 

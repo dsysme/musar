@@ -15,4 +15,3 @@ from payments import models
 
 admin.site.register(models.Corporation)
 admin.site.register(models.Payment)
-admin.site.register(models.UserProfile)

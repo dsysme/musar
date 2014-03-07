@@ -12,7 +12,7 @@
                 <div class="panel-heading" dir="rtl">
                     <h3 class="panel-title">סה"כ  </h3>
                 </div>
-                <span class="count"><h2 align="center">{{ user_profile.payments_count }} תשלומים </h2></span>
+                <span class="count"><h2 align="center">{{ count }} תשלומים </h2></span>
             </div>
         </div>
         <div class="col-sm-3">
@@ -21,7 +21,7 @@
                 <div class="panel-heading" dir="rtl">
                     <h3 class="panel-title">סה"כ מאחרים  </h3>
                 </div>
-                <span class="count"><h2 align="center">{{ user_profile.payments_count }} תשלומים </h2></span>
+                <span class="count"><h2 align="center">{{ late_count }} תשלומים </h2></span>
             </div>
         </div>
         <div class="col-sm-3">
@@ -29,7 +29,7 @@
                 <div class="panel-heading" dir="rtl">
                     <h3 class="panel-title">איחור ממוצע לתשלום</h3>
                 </div>
-                <span class="count"><h2 align="center">{{ user_profile.lateness_average }} ימים</h2></span>
+                <span class="count"><h2 align="center">{{ extra_credit_avg }} ימים</h2></span>
             </div>
         </div>
         <div class="col-sm-3">
@@ -37,7 +37,7 @@
                 <div class="panel-heading" dir="rtl">
                     <h3 class="panel-title">ממוצע אשראי לתשלום</h3>
                 </div>
-                <span class="count"><h2 align="center">{{ user_profile.credit_average }} ימים</h2></span>
+                <span class="count"><h2 align="center">{{ credit_avg }} ימים</h2></span>
             </div>
         </div>
     </div>

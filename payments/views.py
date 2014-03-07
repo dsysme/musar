@@ -14,8 +14,9 @@ from django.views.generic.edit import CreateView, FormView
 from django_tables2 import SingleTableView, RequestConfig
 from payments.forms import AddPaymentForm, LoadFileForm
 from payments.models import (
-    Corporation, Payment, UserProfile, get_best_corporations, 
-    get_worst_corporations, get_extra_credit_days, get_credit_days
+    Corporation, Payment, get_best_corporations, 
+    get_worst_corporations, get_extra_credit_days, get_credit_days,
+    overdue_payments, neardue_payments
 )
 from django.template import RequestContext
 import logging
@@ -73,17 +74,16 @@ class HomeView(SingleTableView):
         """
         context = super(HomeView, self).get_context_data(**kwargs)
 
-        user_profile, created = UserProfile.objects.get_or_create(user= self.request.user)
         # add overview payments
         table = PaymentsPartialTable(
-            user_profile.overdue_payments
+            overdue_payments(self.request.user)
         )
         RequestConfig(self.request, paginate={"per_page": 3}).configure(table) 
         context['table'] = table
         	
         # add payments due in 6 days
         table_1 = PaymentsPartialTable(
-            user_profile.neardue_payments
+            neardue_payments(self.request.user)
         )
         RequestConfig(self.request, paginate={"per_page": 3}).configure(table_1)
         context['table_neardue_payments'] = table_1
@@ -98,17 +98,41 @@ class HomeView(SingleTableView):
 
 @login_required
 def statistics(a_request, username):
-	try:
-		# consider taking username from the request
-		user = User.objects.get(username = username)
-		profile = user.get_profile()
-		assert user != None
-		assert profile != None
-		return render(a_request, 'payments/statistics.html', 
-			{'user': user, 'user_profile': profile}
-		)
-	except User.DoesNotExist:
-		return HttpResponse("Invalid username")
+    try:
+        user = User.objects.get(username=a_request.user.username)
+        assert user != None
+    except User.DoesNotExist:
+        return HttpResponse("Invalid username")
+    payments = Payment.objects.filter(owner=user)\
+        .values('supply_date', 'due_date', 'pay_date')
+    total_extra_credit = 0
+    total_credit = 0
+    count = len(payments)
+    late_count = 0
+    for payment in payments:
+        extra_credit = get_extra_credit_days(
+            payment['supply_date'], 
+            payment['due_date'], 
+            payment['pay_date']
+        )
+        if (extra_credit > 0):
+            late_count += 1
+            total_extra_credit += extra_credit
+            
+        total_credit += get_credit_days(
+            payment['supply_date'], 
+            payment['pay_date']
+        )
+        
+    extra_credit_avg = total_extra_credit/count
+    credit_avg = total_credit/count
+    return render(a_request, 'payments/statistics.html', 
+        {'user': user, 
+        'count': count,
+        'late_count': late_count,
+        'extra_credit_avg': extra_credit_avg,
+        'credit_avg': credit_avg}
+    )
 
 @login_required
 def settings(a_request, username):
@@ -148,7 +172,7 @@ def compare_view(a_request, corporation):
     	'corporation': c, 
         'rating': c.rating,
         'count': count,
-        'late_count': count,
+        'late_count': late_count,
         'extra_credit_avg': extra_credit_avg,
         'credit_avg': credit_avg}
     )

@@ -271,7 +271,9 @@ def save_payments_list_view(a_request, username):
     		pay_date=csv_model.pay_date)
 		)
 		
-	
+	# P.A. bulk_create a number of caveats like not calling custom save
+    # read https://docs.djangoproject.com/en/dev/ref/models/querysets/ for 
+    # more details on bulk_create caveats
     Payment.objects.bulk_create(payments)
     
     return HttpResponseRedirect(reverse_lazy('payments',

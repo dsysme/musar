@@ -89,12 +89,6 @@ class Corporation(models.Model):
             [get_extra_credit_days(payment['supply_date'], payment['due_date'], payment['pay_date']) for payment in payments]
         return payments_extra_credit_days_list
     
-#     @property
-#     def late_payments_count(self):
-#         late_payments = list(payment for payment in self.payment_set.all() \
-#             if payment.extra_credit_days > 0)
-#         return len(late_payments_set)
-    
     @property
     def lateness_average(self):
         list = self.payments_late_days()

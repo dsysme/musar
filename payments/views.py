@@ -14,8 +14,7 @@ from django.views.generic.edit import CreateView, FormView
 from django_tables2 import SingleTableView, RequestConfig
 from payments.forms import AddPaymentForm, LoadFileForm
 from payments.models import (
-    Corporation, Payment, get_best_corporations, 
-    get_worst_corporations, get_extra_credit_days, get_credit_days,
+    Corporation, Payment, get_extra_credit_days, get_credit_days,
     overdue_payments, neardue_payments
 )
 from django.template import RequestContext
@@ -37,14 +36,10 @@ logger = logging.getLogger(__name__)
 
 def index(a_request):
     context = RequestContext(a_request)
-    best = get_best_corporations()
-    context['first'] = best[0]
-    context['second'] = best[1]
-    context['third'] = best[2]
-    worst = get_worst_corporations()
-    context['last'] = worst[0]
-    context['last_prev'] = worst[1]
-    context['last_prev_prev'] = worst[2]
+    corporations = soreted(Corporation.with_statistics, key=lambda t: t.rating)
+    if len(corporations) > 3:
+        context['best'] = corporations[0:3]
+        context['worst'] = corporations[-3]
     return render(a_request, 'payments/index.html', context_instance=context)
 
 
@@ -65,6 +60,7 @@ class HomeView(SingleTableView):
     template_name = 'payments/home.html'
     table_class = PaymentsPartialTable
 
+    #TODO: is this redundant?
     def __init__(self, user=None, *args, **kwargs):
         super(HomeView, self).__init__(*args, **kwargs)
         self.user = user
@@ -74,7 +70,7 @@ class HomeView(SingleTableView):
         """
         context = super(HomeView, self).get_context_data(**kwargs)
 
-        # add overview payments
+        # add overview (late) payments
         table = PaymentsPartialTable(
             overdue_payments(self.request.user)
         )
@@ -98,34 +94,41 @@ class HomeView(SingleTableView):
 
 @login_required
 def statistics(a_request, username):
+    #TODO consider applying DRY for this view and compare_view
     try:
         user = User.objects.get(username=a_request.user.username)
         assert user != None
     except User.DoesNotExist:
         return HttpResponse("Invalid username")
-    payments = Payment.objects.filter(owner=user)\
+    payments = Payment.late_payments.filter(owner=user)\
         .values('supply_date', 'due_date', 'pay_date')
+   
     total_extra_credit = 0
-    total_credit = 0
     count = len(payments)
     late_count = 0
     for payment in payments:
-        extra_credit = get_extra_credit_days(
-            payment['supply_date'], 
-            payment['due_date'], 
-            payment['pay_date']
-        )
+        extra_credit = payment.extra_credit_days
+        
+#         get_extra_credit_days(
+#             payment['supply_date'], 
+#             payment['due_date'], 
+#             payment['pay_date']
+#         )
         if (extra_credit > 0):
             late_count += 1
             total_extra_credit += extra_credit
             
-        total_credit += get_credit_days(
-            payment['supply_date'], 
-            payment['pay_date']
-        )
+        total_credit += payment.credit_days
+#         get_credit_days(
+#             payment['supply_date'], 
+#             payment['pay_date']
+#         )
         
-    extra_credit_avg = total_extra_credit/count
-    credit_avg = total_credit/count
+    extra_credit_avg = 0
+    credit_avg = 0
+    if (late_count > 0):
+        extra_credit_avg = total_extra_credit/count
+        credit_avg = total_credit/count
     return render(a_request, 'payments/statistics.html', 
         {'user': user, 
         'count': count,
@@ -140,10 +143,11 @@ def settings(a_request, username):
    
 @login_required 
 def compare_view(a_request, corporation):
+    #TODO consider applying DRY for this view and statitics
     c = get_object_or_404(Corporation, cid=corporation)
     assert c != None
     user = User.objects.get(username=a_request.user.username)
-    payments = Payment.objects.filter(owner=user)\
+    payments = Payment.late_payments.filter(owner=user)\
         .filter(corporation__cid=corporation)\
         .values('supply_date', 'due_date', 'pay_date')
     total_extra_credit = 0
@@ -151,11 +155,12 @@ def compare_view(a_request, corporation):
     count = len(payments)
     late_count = 0
     for payment in payments:
-        extra_credit = get_extra_credit_days(
-            payment['supply_date'], 
-            payment['due_date'], 
-            payment['pay_date']
-        )
+        extra_credit = payment.extra_credit_days
+#         get_extra_credit_days(
+#             payment['supply_date'], 
+#             payment['due_date'], 
+#             payment['pay_date']
+#         )
         if (extra_credit > 0):
             late_count += 1
             total_extra_credit += extra_credit
@@ -164,9 +169,12 @@ def compare_view(a_request, corporation):
             payment['supply_date'], 
             payment['pay_date']
         )
+    extra_credit_avg = 0
+    credit_avg = 0
+    if count > 0:
+        extra_credit_avg = total_extra_credit/count
+        credit_avg = total_credit/count
         
-    extra_credit_avg = total_extra_credit/count
-    credit_avg = total_credit/count
     return render(a_request, 'payments/compare_corporation.html', 
     	{'user': user, 
     	'corporation': c, 
@@ -197,11 +205,10 @@ class MyCorporationsList(SingleTableView):
     def get_queryset(self):
 	   # filter for current user
        list = Payment.objects.filter(owner=self.request.user).values_list('corporation').distinct()
-       return Corporation.objects.filter(cid__in=list)
+       return Corporation.rated_objects.filter(cid__in=list)
 
     # This is how you decorate class see:
     # https://docs.djangoproject.com/en/1.5/topics/class-based-views/intro/
-
     @method_decorator(login_required)
     def dispatch(self, *args, **kwargs):
 		return super(MyCorporationsList, self).dispatch(*args, **kwargs)
@@ -215,8 +222,8 @@ class CorporationsList(SingleTableView):
     table_pagination = {"per_page": 10}
     
     def get_quearyset(self):
-        return Corporation.objects.all()
-    
+        return Corporation.rated_objects.all()
+     
     def get_context_data(self, **kwargs):
         """ Add title
         """

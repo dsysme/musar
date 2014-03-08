@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% block header %}
-{% endblock %}
+{% endblock header %}
 {% block content %}
 <div class="container">
     <div class="row">
@@ -18,19 +19,19 @@
         </div>
         <div class="col-xs-12 col-lg-6">
                 <div class="panel-heading">
-                    <h3 class="caption"> התאגידים המצטיינים ביותר</h3>
+                    <h3 class="caption">{% trans 'Top Payments Ethics Corporations' %}</h3>
                 </div>
                     <ol>
-                        <li><font size="3" color="green">{{first}}</font></li>
-                        <li><font size="3" color="green">{{second}}</font></li>
-                        <li><font size="3" color="green">{{third}}</font></li>
+                        {% for corporation in best %}
+                        <li><font size="3" color="green">{{corporation}}</font></li>
+                        {% endfor %}
                     </ol>
         </div>
     </div>
     <div class="row">
         <div class="col-xs-12 col-lg-6">
             <div class="panel-heading">
-                <h3 class="caption">שימוש באתר</h3>
+                <h3 class="caption">{% trans 'How to use this site?' %}</h3>
             </div>
             <div>
                 <p>
@@ -41,23 +42,21 @@
         </div>
        <div class="col-xs-12 col-lg-6">
                 <div class="panel-heading">
-                    <h3 class="caption">התאגידים המתקשים ביותר </h3>
+                    <h3 class="caption">{% trans 'Buttom Payments Ethics Corporations' %} </h3>
                 </div>
                    <ol>
-
-                        <li><font size="3" color="red">{{last}}</font></li>
-                        <li><font size="3" color="red">{{last_prev}}</font></li>
-                        <li><font size="3" color="red">{{last_prev_prev}}</font></li>
-
+                        {% for corporation in worst %}
+                        <li><font size="3" color="green">{{corporation}}</font></li>
+                        {% endfor %}
                    </ol>
         </div>
     </div>
     <div class="row">
         <div class="col-xs-12 col-lg-6">
             <form method="get">
-                <h3 class="caption">משתמש חדש?</h2>
+                <h3 class="caption">{% trans 'Not Registered?' %}</h2>
                 <a class="btn btn-lg btn-primary" href="{% url 'register' %}">
-                    צור חשבון
+                    {% trans 'Register' %}
                 </a>
             </form>
         </div>

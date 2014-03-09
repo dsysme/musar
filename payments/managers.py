@@ -117,6 +117,7 @@ class CorporationStatisticsManager(models.Manager):
         for c in corporations:
             c.rating = sorted_scores.index(c.score) + 1
         
+        corporations = sorted(corporations, key=lambda c: c.rating)
         return corporations
             
 

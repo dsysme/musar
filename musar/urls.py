@@ -51,9 +51,9 @@ urlpatterns = patterns('',
         'django.contrib.auth.views.logout',
         {'next_page': reverse_lazy('index')}, name="logout"),
 
-    url(r'^company/$',
-        TemplateView.as_view(template_name="payments/company.html"),
-        name='company'),
+#     url(r'^company/$',
+#         TemplateView.as_view(template_name="payments/company.html"),
+#         name='company'),
 
     url(r'^user/(?P<username>\w+)/add_payments/$',
         PaymentCreate.as_view(),

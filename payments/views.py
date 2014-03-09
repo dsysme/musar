@@ -24,18 +24,14 @@ from payments.tables import (
     PaymentsTable, PaymentsPartialTable, CorporationTable, MyCorporationTable
 )
 
-
-# Get an instance of a logger
-logger = logging.getLogger(__name__)
-# from django.utils.datetime_safe import datetime
+CORPORATIONS_PER_PAGE = 10
 
 # Create your views here.
 
 
 def index(a_request):
     context = RequestContext(a_request)
-    corporations = sorted(Corporation.objects.with_statistics(), 
-        key=lambda t: t.rating)
+    corporations = Corporation.objects.with_statistics()
     context['best'] = []
     context['worst'] = []
     if len(corporations) > 3:
@@ -156,7 +152,7 @@ class CorporationsList(SingleTableView):
     model = Corporation
     template_name = 'payments/table.html'
     table_class = CorporationTable
-    table_pagination = {"per_page": 5}
+    table_pagination = {"per_page": CORPORATIONS_PER_PAGE}
     table_data = Corporation.objects.with_statistics()
     
 #     def get_quearyset(self):

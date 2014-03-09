@@ -7,30 +7,15 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django.db.models.signals import post_save
 from django.template.defaultfilters import slugify
-from django.db.models import Q, F, Sum
+
 import numpy
-import json
+from payments.managers import (
+    ExtraCreditManager, CreditManager,OverduePaymentsManager, 
+    OverduePaymentsManager, NearduePaymentsManager, CorporationStatisticsManager
+)
 
 MAX_LEGAL_CREDIT_DAYS=45
 
-def dthandler(obj):
-    if isinstance(obj, datetime):
-        return obj.isoformat()
-    else:
-        return json.JSONEncoder().default(obj)
-
-
-class ShareOption(object):
-    """Sharing information policies"""
-    NONE = 1
-    RESTRICTED = 2
-    ALL = 3
-
-    choices = (
-        (NONE, 'Share None'),
-        (RESTRICTED, 'Share Only With Companies Involved'),
-        (ALL, 'Share All'),
-    )
 
 def regulation_due_date(supply_date):
     """ Due date might be latter than regulations premits. In such case,
@@ -42,164 +27,7 @@ def regulation_due_date(supply_date):
     return max_legal_credit_date
 
 
-# def get_extra_credit_days(supply_date, due_date, pay_date):
-#     # TODO: make sure date is not in future
-#     effective_due_date = min(due_date, 
-#             regulation_due_date(supply_date)
-#     )
-#     if (pay_date == None):
-#         # ToDo: add test for this if
-#         return max(0, (date.today() - effective_due_date).days)
-#     return max((pay_date - effective_due_date).days, 0)
-# 
-# def get_credit_days(supply_date, pay_date):
-#         if (pay_date == None):
-#             # ToDo: add test for this if
-#             return max(0, (date.today() - supply_date).days)
-#         return max(0, (pay_date - supply_date).days)
-#     
 
-def overdue_payments(user):
-    # return payments that are late and unpaid
-    late_payments = [
-        payment for payment in user.payment_set.filter(
-                Q(due_date__lt=date.today()) & Q(pay_date__isnull=True)
-        )
-    ]
-    return late_payments
-
-          
-def neardue_payments(user):
-    # return payments that are due in 6 days at most 
-    neardue_payments = [
-        payment for payment in user.payment_set.filter(
-            Q(due_date__lt=date.today() + timedelta(days=6)) 
-            & Q(pay_date__isnull=True)
-        )
-    ]
-    return neardue_payments
-
-
-class ExtraCreditManager(models.Manager):
-    def get_query_set(self):
-        return Payment.filter(
-            Q(pay_date__isnull=False) 
-            & Q(due_date__lt=F('pay_date'))
-            | Q(pay_date__isnull=True)
-        )
-             
-#         from django.db import connection
-#         cursor = connection.cursor()
-#         # TODO cover case when supply date is future or not given
-#         # TODO make sure due_date is legal
-#         # fetch late payments
-#         cursor.execute("""
-#             SELECT *
-#             FROM payments_payment 
-#             WHERE pay_date IS NULL OR pay_date IS NOT NULL AND due_date < pay_date
-#             ORDER BY due_date DESC""")
-#             
-# 
-#         # calculate for each late payment, the extra_credit_days and return
-#         # as list
-#         result_list = []
-#         for payment in cursor.fetchall():
-#             payment.extra_credit_days = Payment.calc_extra_credit_days(
-#                         payment['supply_date'], 
-#                         payment['due_date'], 
-#                         payment['pay_date']
-#             )
-#             result_list.append(payment)
-#         
-#         return result_list
-
-
-class CreditManager(models.Manager):
-    
-    def get_query_set(self):
-        return Payment.filter(
-            Q(pay_date__isnull=False) & Q(supply_date__lt=F('pay_date'))
-            | Q(pay_date__isnull=True) & Q(supply_date__lt=date.today())
-        )
-             
-#         from django.db import connection
-#         cursor = connection.cursor()
-#         cursor.execute("""
-#             SELECT (*)
-#             FROM payments_payment 
-#             WHERE pay_date IS NOT NULL AND supply_date < pay_date
-#                 OR pay_date IS NULL AND supply_date < CURDATE()
-#             ORDER BY supply_date DESC""")
-#             
-#         # calculate for each payment unpaid or paid after supply, the 
-#         # credit_days and return as list
-#         result_list = []
-#         for payment in cursor.fetchall():
-#             payment.extra_credit_days = Payment.calc_credit_days(
-#                 payment['supply_date'], 
-#                 payment['pay_date']
-#             )
-#             result_list.append(payment)
-#     
-#         return result_list
- 
-class StatisticsManager(models.Manager):
-    
-    # P.A.: the result is not a QuerySet, therefor cannot be filtered or
-    # applied any other QuerySet methods.
-    # This manager purpose is to rate all corporation at O(1) db operations
-    # instead of the trivial model use which will result in db access and
-    # rating all corporation for each access to one corporation rating  
-    def get_query_set(self):
-        corporations = Corporation.objects.all()
-        scores = {}
-        
-        # calculate and add score
-        for c in corporations:
-            count_late_days = 0
-            count_credit_days = 0
-            
-            # filter late/with credit payments for corporation c
-            late_payments = Payment.late_payments.filter(corporation=c.cid)
-            credit_payments = Payment.credit_payments.filter(corporation=c.cid)
-            
-            # count all the payments associated with corporation c
-            total_payments = Payment.filter(corporation=c.cid).count()
-            
-            # count the late days over all payments for corporation c
-            for payment in late_payments:
-                assert payment.extra_credit_days != None and payment.extra_credit_days > 0
-                count_late_days = count_late_days + payment.extra_credit_days 
-            
-            c.extra_credit_days = count_late_days
-            c.avg_extra_credit_days = count_late_days/total_payments
-            
-            # count the credit days over all payments for corporation c
-            for payment in credit_payments:
-                assert payment.credit_days != None and payment.credit_days > 0
-                count_credit_days = count_credit_days + payment.credit_days
-                
-            c.credit_days = count_credit_days
-            c.avg_credit_days = count_credit_days/total_payments
-            
-            # The more late/credit days the higher the score is
-            c.score = count_credit_days + 2 * count_late_days
-            scores.add(score)
-        
-        # calculate and add rating
-        
-        # since scores is a set, each score is unique and the position of a 
-        # corporation's score in the in the soretd score list gives indication
-        # on the corporation's moral ethics compare to other corporations 
-        sorted_scores = sorted(scores)
-        for c in corporations:
-            c.rating = sorted_scores.index(c.score)
-        
-        return corporations
-            
-    
-# TODO consult if the method should be properties 
-# http://stackoverflow.com/questions/17429159/idiomatic-python-property-or-method
 class Corporation(models.Model):
     """ Corporation profile """
     cid = models.CharField(
@@ -216,53 +44,14 @@ class Corporation(models.Model):
     email = models.EmailField(null=True, blank=True)
     
     # Managers
-    objects = models.Manager() # The default manager.
-    with_statistics = StatisticsManager()
+    # use Corporation.objects.with_statistics() to get Corporation 
+    # with statistic data this is unecessarly expensive unless you need the 
+    # corporation score with necessitate fetch for all objects 
+    objects = CorporationStatisticsManager()
 
     def __unicode__(self):
         return self.name
     
-#     @property
-#     def payments_count(self):
-#         """ returns the count of payments associated with this corporation
-#         """
-#         return self.payment_set.count()
-#     
-#     # don't make this a property if you do, the rating will not be shown in view
-#     def total_extra_credit_days(self):
-#         """ return total number of late days associated with this corporation
-#         """
-#         result = Payments.late_payments.filter(corporation=self.cid)\
-#             .aggregate(Sum('extra_credit_days'))
-#             
-#         return result['extra_credit_days__sum']
-#     
-#     @property
-#     def extra_credit_sum(self):
-#         return self.total_extra_credit_days()
-# 
-#     @property
-#     def lateness_average(self):
-#         return self.extra_credit_sum/self.payments_count
-#     
-#     # don't make this a property if you do, the rating will not be shown in view
-#     def total_credit_days(self):
-#         """ return total number of late days associated with this corporation
-#         """
-#         result = Payments.credit_payments.filter(corporation=self.cid)\
-#             .aggregate(Sum('credit_days'))
-#             
-#         return result['credit_days__sum'] 
-# 
-#     @property
-#     def credit_sum(self):
-#         return self.total_credit_days()
-# 
-#     @property
-#     def credit_average(self):
-#         return self.credit_sum/self.payments_count
-#  
-
 def get_max_legal_credit_days(supply_date):
     # TODO: implement the real computation which is based on supply_date shotef+
     return MAX_LEGAL_CREDIT_DAYS
@@ -321,19 +110,27 @@ class Payment(models.Model):
     )
     
     objects = models.Manager() # The default manager.
+
+     # needed for efficiency when filtering by corporation
     late_payments = ExtraCreditManager()
     credit_payments = CreditManager()
     
-    def __unicode__(self):
-        return self.title + " " \
-            + self.owner.username + " " + self.corporation.name \
-            + " " + str(self.calc_extra_credit_days) + " " \
-            + str(self.supply_date) +  " " + str(self.due_date) \
-            + " " + str(self.pay_date) 
+    # needed for efficiency when filtering by user
+    overdue_payments = OverduePaymentsManager()
+    neardue_payments = NearduePaymentsManager()
+    
+#     def __unicode__(self):
+#         return self.title + " " \
+#             + self.owner.username + " " + self.corporation.name \
+#             + str(self.supply_date) +  " " + str(self.due_date) \
+#             + " " + str(self.pay_date) 
 
     def get_absolute_url(self):
         return reverse('add_payments', kwargs={'pk': self.pk})
 
+    def __unicode__(self):
+        return self.title + self.corporation.name + self.owner.username
+    
     #TODO does this should be a class method?
     @classmethod
     def create(cls, corporation, owner, amount, title, due_date, supply_date, pay_date):
@@ -351,31 +148,111 @@ class Payment(models.Model):
             pay_date=pay_date,
         )
 
-    @classmethod
-    def _extra_credit_days(self):
+    def get_extra_credit_days(self):
         # TODO: make sure date is not in future
         effective_due_date = min(self.due_date, 
             regulation_due_date(self.supply_date)
         )
-        if (pay_date == None):
+        if (self.pay_date == None):
             # ToDo: add test for this if
             return max(0, (date.today() - effective_due_date).days)
         return max((self.pay_date - effective_due_date).days, 0)
     
-    extra_credit_days = property(_extra_credit_days)
-    
-    @classmethod
-    def _credit_days(self):
-        if (pay_date == None):
+    def get_credit_days(self):
+        if (self.pay_date == None):
             # ToDo: add test for this if
             return max(0, (date.today() - self.supply_date).days)
         return max(0, (self.pay_date - self.supply_date).days)
     
-    credit_days = property(_credit_days)
-
     class Meta:
         verbose_name = _("Payment")
         verbose_name_plural = _("Payments")
-        
 
-#
+
+class SupplierUser(User):
+    
+    def get_overdue_payments(self, corporation_cid=None):
+        if (corporation_cid is not None):
+            return Payment.overdue_payments.filter(owner=self)\
+                .filter(corporation__cid=corporation_cid)
+        return Payment.overdue_payments.filter(owner=self)
+
+    def get_neardue_payments(self, corporation_cid=None):
+        if (corporation_cid is not None):
+            return Payment.neardue_payments.filter(owner=self)\
+                .filter(corporation__cid=corporation_cid)
+        return Payment.neardue_payments.filter(owner=self)
+    
+    def get_extra_credit_count(self, corporation_cid=None):
+        if (corporation_cid is not None):
+            return Payment.late_payments.filter(owner=self)\
+                .filter(corporation__cid=corporation_cid).count()
+        return Payment.late_payments.filter(owner=self).count()
+    
+    def get_payments_count(self, corporation_cid=None):
+        if (corporation_cid is not None):
+            return Payment.objects.filter(owner=self)\
+                .filter(corporation__cid=corporation_cid).count()
+        return Payment.objects.filter(owner=self).count()
+    
+    def get_total_extra_credit_days(self, corporation_cid=None):
+        late_payments = []
+        if (corporation_cid is not None):
+            late_payments = Payment.late_payments.filter(owner=self)\
+                .filter(corporation__cid=corporation_cid)
+        else:
+            late_payments = Payment.late_payments.filter(owner=self)
+        result = 0
+        for payment in late_payments:
+            result += payment.get_extra_credit_days()
+        return result
+    
+    def get_avg_extra_credit(self, corporation_cid=None):
+        result = 0
+        if (corporation_cid is not None):
+            count = self.get_payments_count(corporation_cid)
+            if count > 0:
+                result = self.get_total_extra_credit_days(corporation_cid)/self.get_payments_count(corporation_cid)
+        else:
+            count = self.get_payments_count()
+            if count > 0:
+                result = self.get_total_extra_credit_days()/self.get_payments_count()
+        return result
+    
+    def get_total_credit_days(self, corporation_cid=None):
+        credit_payments = []
+        if (corporation_cid is not None):
+            credit_payments = Payment.credit_payments.filter(owner=self)\
+                .filter(corporation__cid=corporation_cid)
+        else:
+            credit_payments = Payment.credit_payments.filter(owner=self)
+        result = 0
+        for payment in credit_payments:
+            result += payment.get_credit_days()
+        return result
+    
+    def get_avg_credit(self, corporation_cid=None):
+        result = 0
+        if (corporation_cid is not None):
+            count = self.get_payments_count(corporation_cid)
+            if count > 0:
+                result = self.get_total_credit_days(corporation_cid)/self.get_payments_count(corporation_cid)
+        else:
+            count = self.get_payments_count()
+            if count > 0:
+                result = self.get_total_credit_days()/self.get_payments_count()
+        return result
+    
+    def get_payments_with_moral_data(self, corporation_cid=None):
+        result = []
+        if (corporation_cid is not None):
+            result = Payment.objects.filter(owner__id=self.id).filter(corporation__cid=corporation_cid)
+        else: 
+            result = Payment.objects.filter(owner__id=self.id)
+        for payment in result:
+            payment.extra_credit_days = payment.get_extra_credit_days()
+            payment.credit_days = payment.get_credit_days()
+        return result
+    
+    class Meta:
+        proxy = True        

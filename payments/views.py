@@ -13,10 +13,8 @@ from django.views.generic import TemplateView
 from django.views.generic.edit import CreateView, FormView
 from django_tables2 import SingleTableView, RequestConfig
 from payments.forms import AddPaymentForm, LoadFileForm
-from payments.models import (
-    Corporation, Payment, get_extra_credit_days, get_credit_days,
-    overdue_payments, neardue_payments
-)
+from payments.models import Corporation, Payment, SupplierUser
+
 from django.template import RequestContext
 import logging
 from payments.csv_models import PaymentCsvModel
@@ -36,10 +34,15 @@ logger = logging.getLogger(__name__)
 
 def index(a_request):
     context = RequestContext(a_request)
-    corporations = soreted(Corporation.with_statistics, key=lambda t: t.rating)
+    corporations = sorted(Corporation.objects.with_statistics(), 
+        key=lambda t: t.rating)
+    context['best'] = []
+    context['worst'] = []
     if len(corporations) > 3:
-        context['best'] = corporations[0:3]
-        context['worst'] = corporations[-3]
+        if (c.rating > 0 for c in corporations[0:3]):
+            context['best'] = corporations[0:3]
+        if (c.rating > 0 for c in corporations[-3:]):
+            context['worst'] = corporations[-3:]
     return render(a_request, 'payments/index.html', context_instance=context)
 
 
@@ -60,28 +63,20 @@ class HomeView(SingleTableView):
     template_name = 'payments/home.html'
     table_class = PaymentsPartialTable
 
-    #TODO: is this redundant?
-    def __init__(self, user=None, *args, **kwargs):
-        super(HomeView, self).__init__(*args, **kwargs)
-        self.user = user
-
     def get_context_data(self, **kwargs):
         """ Adds tables of late and near due payments to the context
         """
         context = super(HomeView, self).get_context_data(**kwargs)
+        u = SupplierUser.objects.get(pk=self.request.user.pk)
 
         # add overview (late) payments
-        table = PaymentsPartialTable(
-            overdue_payments(self.request.user)
-        )
-        RequestConfig(self.request, paginate={"per_page": 3}).configure(table) 
+        table = PaymentsPartialTable(u.get_overdue_payments())
+#         RequestConfig(self.request, paginate={"per_page": 3}).configure(table) 
         context['table'] = table
         	
         # add payments due in 6 days
-        table_1 = PaymentsPartialTable(
-            neardue_payments(self.request.user)
-        )
-        RequestConfig(self.request, paginate={"per_page": 3}).configure(table_1)
+        table_1 = PaymentsPartialTable(u.get_neardue_payments())
+#         RequestConfig(self.request, paginate={"per_page": 3}).configure(table_1)
         context['table_neardue_payments'] = table_1
         return context
 
@@ -96,45 +91,17 @@ class HomeView(SingleTableView):
 def statistics(a_request, username):
     #TODO consider applying DRY for this view and compare_view
     try:
-        user = User.objects.get(username=a_request.user.username)
+        user = SupplierUser.objects.get(pk=a_request.user.pk)
         assert user != None
     except User.DoesNotExist:
         return HttpResponse("Invalid username")
-    payments = Payment.late_payments.filter(owner=user)\
-        .values('supply_date', 'due_date', 'pay_date')
-   
-    total_extra_credit = 0
-    count = len(payments)
-    late_count = 0
-    for payment in payments:
-        extra_credit = payment.extra_credit_days
-        
-#         get_extra_credit_days(
-#             payment['supply_date'], 
-#             payment['due_date'], 
-#             payment['pay_date']
-#         )
-        if (extra_credit > 0):
-            late_count += 1
-            total_extra_credit += extra_credit
-            
-        total_credit += payment.credit_days
-#         get_credit_days(
-#             payment['supply_date'], 
-#             payment['pay_date']
-#         )
-        
-    extra_credit_avg = 0
-    credit_avg = 0
-    if (late_count > 0):
-        extra_credit_avg = total_extra_credit/count
-        credit_avg = total_credit/count
+
     return render(a_request, 'payments/statistics.html', 
         {'user': user, 
-        'count': count,
-        'late_count': late_count,
-        'extra_credit_avg': extra_credit_avg,
-        'credit_avg': credit_avg}
+        'count': user.get_payments_count(),
+        'late_count': user.get_extra_credit_count(),
+        'extra_credit_avg': user.get_avg_extra_credit(),
+        'credit_avg': user.get_avg_credit()}
     )
 
 @login_required
@@ -144,55 +111,19 @@ def settings(a_request, username):
 @login_required 
 def compare_view(a_request, corporation):
     #TODO consider applying DRY for this view and statitics
-    c = get_object_or_404(Corporation, cid=corporation)
+    all_corporations = Corporation.objects.with_statistics()
+    c = next((c for c in all_corporations if c.cid == corporation), None)
     assert c != None
-    user = User.objects.get(username=a_request.user.username)
-    payments = Payment.late_payments.filter(owner=user)\
-        .filter(corporation__cid=corporation)\
-        .values('supply_date', 'due_date', 'pay_date')
-    total_extra_credit = 0
-    total_credit = 0
-    count = len(payments)
-    late_count = 0
-    for payment in payments:
-        extra_credit = payment.extra_credit_days
-#         get_extra_credit_days(
-#             payment['supply_date'], 
-#             payment['due_date'], 
-#             payment['pay_date']
-#         )
-        if (extra_credit > 0):
-            late_count += 1
-            total_extra_credit += extra_credit
-            
-        total_credit += get_credit_days(
-            payment['supply_date'], 
-            payment['pay_date']
-        )
-    extra_credit_avg = 0
-    credit_avg = 0
-    if count > 0:
-        extra_credit_avg = total_extra_credit/count
-        credit_avg = total_credit/count
-        
-    return render(a_request, 'payments/compare_corporation.html', 
-    	{'user': user, 
-    	'corporation': c, 
-        'rating': c.rating,
-        'count': count,
-        'late_count': late_count,
-        'extra_credit_avg': extra_credit_avg,
-        'credit_avg': credit_avg}
-    )
+    user = SupplierUser.objects.get(pk=a_request.user.pk)
 
-
-# NO login_required    
-def corporation_details(a_request, corporation):
-    c = get_object_or_404(Corporation, cid=corporation)
-    assert c != None
-    return render(a_request, 'payments/corporation_details.html', 
-        { 'corporation': c }
-    )
+    return render(a_request, 'payments/compare_corporation.html', {
+        'user': user, 
+        'corporation': c,
+        'count': user.get_payments_count(c.cid),
+        'late_count': user.get_extra_credit_count(c.cid),
+        'extra_credit_avg': user.get_avg_extra_credit(c.cid),
+        'credit_avg': user.get_avg_credit(c.cid)
+    })
 
 
 # login_required
@@ -202,10 +133,16 @@ class MyCorporationsList(SingleTableView):
     table_class = MyCorporationTable
     table_pagination = {"per_page": 10}
 	
-    def get_queryset(self):
+    
+    def get_table_data(self):
 	   # filter for current user
-       list = Payment.objects.filter(owner=self.request.user).values_list('corporation').distinct()
-       return Corporation.rated_objects.filter(cid__in=list)
+       my_corporation = Payment.objects.filter(owner=self.request.user).values('corporation')
+       my_corporation_cid = [cid['corporation'] for cid in my_corporation]
+       all_corporations = Corporation.objects.with_statistics()
+       my_corporation_with_stat = [corporation for \
+            corporation in all_corporations\
+            if corporation.cid in my_corporation_cid]
+       return my_corporation_with_stat
 
     # This is how you decorate class see:
     # https://docs.djangoproject.com/en/1.5/topics/class-based-views/intro/
@@ -219,10 +156,13 @@ class CorporationsList(SingleTableView):
     model = Corporation
     template_name = 'payments/table.html'
     table_class = CorporationTable
-    table_pagination = {"per_page": 10}
+    table_pagination = {"per_page": 5}
+    table_data = Corporation.objects.with_statistics()
     
-    def get_quearyset(self):
-        return Corporation.rated_objects.all()
+#     def get_quearyset(self):
+#         all_corporations = Corporation.objects.with_statistics()
+#         assert False
+#         return all_corporations
      
     def get_context_data(self, **kwargs):
         """ Add title
@@ -237,13 +177,17 @@ class PaymentsList(SingleTableView):
     model = Payment
     template_name = 'payments/payments.html'
     table_class = PaymentsTable
+#     table_data = self.request.user.payment_set.all()
     
-    def get_queryset(self):
+    def get_table_data(self):
+
+        user = SupplierUser.objects.get(pk=self.request.user.pk)
         if self.request.method == 'POST':
+            #TODO where do we use this
             corporation = self.request.POST.get('corporation')
-            payments_list = [payment for payment in self.request.user.payment_set.filter(coporation__cid_eq=corporation)]
+            payments_list = user.get_payments_with_moral_data(corporation)
         else:
-            payments_list = [payment for payment in self.request.user.payment_set.all()]
+            payments_list = user.get_payments_with_moral_data()
     	return payments_list
 
     # This is how you decorate class see:
@@ -305,12 +249,20 @@ def save_payments_list_view(a_request, username):
 	# P.A. bulk_create a number of caveats like not calling custom save
     # read https://docs.djangoproject.com/en/dev/ref/models/querysets/ for 
     # more details on bulk_create caveats
-    Payment.objects.bulk_create(payments)
+    Payment.objects.bulk_create(payments, batch_size=500)
     
     return HttpResponseRedirect(reverse_lazy('payments',
         kwargs={'username': username})
     )
 
+# NO login_required    
+def corporation_details(a_request, corporation):
+    all_corporations = Corporation.objects.with_statistics()
+    c = next((c for c in all_corporations if c.cid == corporation), None)
+    assert c != None
+    return render(a_request, 'payments/corporation_details.html', 
+        { 'corporation': c }
+    )
 
 # login_required
 class PaymentCreate(CreateView):
@@ -342,21 +294,4 @@ class PaymentCreate(CreateView):
         return super(PaymentCreate, self).dispatch(*args, **kwargs)
 
 
-# @login_required
-# def add_payments_file(request, username, filename):
-#     return HttpResponseRedirect(
-#         reverse_lazy('payments'), kwargs={'username': username})
 
-
-def search(a_request):
-    search_term = a_request.GET['search_term'.encode('utf-8')].strip()
-    # TODO check if match exist and redirect only if one match found
-    return HttpResponseRedirect(
-        reverse_lazy('corporation', kwargs={'corporation': search_term})
-    )
-
-
-def corporation_detail(a_request, corporation):
-    obj = get_object_or_404(Corporation, name__icontains=corporation)
-    assert obj != None
-    return render(a_request, 'payments/company.html', {'corporation': obj})

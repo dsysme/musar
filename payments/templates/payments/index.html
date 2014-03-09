@@ -23,7 +23,7 @@
                 </div>
                     <ol>
                         {% for corporation in best %}
-                        <li><font size="3" color="green">{{corporation}}</font></li>
+                        <li><font size="3" color="green">{{corporation.name}}</font></li>
                         {% endfor %}
                     </ol>
         </div>
@@ -46,7 +46,7 @@
                 </div>
                    <ol>
                         {% for corporation in worst %}
-                        <li><font size="3" color="green">{{corporation}}</font></li>
+                        <li><font size="3" color="green">{{corporation.name}}</font></li>
                         {% endfor %}
                    </ol>
         </div>

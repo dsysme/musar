@@ -21,7 +21,7 @@
                 <div class="panel-heading" dir="rtl">
                     <h3 class="panel-title"> {% trans "Rating" %}</h3>
                 </div>
-                <span class="count"><h2 align="center">{{ rating }}</h2></span>
+                <span class="count"><h2 align="center">{{ corporation.rating }}</h2></span>
             </div>
         </div>
         <div class="col-sm-3">
@@ -29,7 +29,7 @@
                 <div class="panel-heading" dir="rtl">
                     <h3 class="panel-title">{% trans 'Avg. of Extra Credit Days' %}</h3>
                 </div>
-                <span class="count"><h2 align="center">{{ corporation.lateness_average }} {% blocktrans %}days{% endblocktrans %}</h2></span>
+                <span class="count"><h2 align="center">{{ corporation.avg_extra_credit_days }} {% blocktrans %}days{% endblocktrans %}</h2></span>
             </div>
         </div>
         <div class="col-sm-3">
@@ -37,7 +37,7 @@
                 <div class="panel-heading" dir="rtl">
                     <h3 class="panel-title">{% blocktrans %}Avg. of Credit Days{% endblocktrans %}</h3>
                 </div>
-                <span class="count"><h2 align="center">{{ corporation.credit_average }} {% blocktrans %}days{% endblocktrans %}</h2></span>
+                <span class="count"><h2 align="center">{{ corporation.avg_credit_days }} {% blocktrans %}days{% endblocktrans %}</h2></span>
             </div>
         </div>
      </div>

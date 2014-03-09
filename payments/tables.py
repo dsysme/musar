@@ -30,8 +30,8 @@ class CorporationTable(tables.Table):
         attrs = {"class": "table"}   
 
 class MyCorporationTable(tables.Table):
-    avg_extra_credit_days = columns.TemplateColumn('{{ record.avg_extra_credit_days }}', verbose_name=_("Avg. of Extra Credit Days"))
-    avg_credit_days = columns.TemplateColumn('{{ record.avg_credit_days }}', verbose_name=_("Avg. of Credit Days"))
+#     avg_extra_credit_days = columns.TemplateColumn('{{ record.avg_extra_credit_days }}', verbose_name=_("Avg. of Extra Credit Days"))
+#     avg_credit_days = columns.TemplateColumn('{{ record.avg_credit_days }}', verbose_name=_("Avg. of Credit Days"))
     rating = columns.TemplateColumn('{{ record.rating }}', verbose_name=_("Rating"))
     name = columns.LinkColumn('compare_corporation', kwargs={'corporation': A('cid')}, verbose_name=_('corporation'))
 
@@ -47,8 +47,8 @@ class MyCorporationTable(tables.Table):
             'cid',
             'name',
             'rating',
-            'avg_extra_credit_days',
-            'avg_credit_days'
+#             'avg_extra_credit_days',
+#             'avg_credit_days'
         )
         attrs = {"class": "table"}   
   

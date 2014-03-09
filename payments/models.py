@@ -119,17 +119,17 @@ class Payment(models.Model):
     overdue_payments = OverduePaymentsManager()
     neardue_payments = NearduePaymentsManager()
     
-#     def __unicode__(self):
-#         return self.title + " " \
-#             + self.owner.username + " " + self.corporation.name \
-#             + str(self.supply_date) +  " " + str(self.due_date) \
-#             + " " + str(self.pay_date) 
+    def __unicode__(self):
+        return self.title + " " + str(self.id)\
+            + self.owner.username + " " + self.corporation.name \
+            + str(self.get_extra_credit_days()) +  " " \
+            + str(self.get_credit_days()) 
 
     def get_absolute_url(self):
         return reverse('add_payments', kwargs={'pk': self.pk})
 
-    def __unicode__(self):
-        return self.title + self.corporation.name + self.owner.username
+#     def __unicode__(self):
+#         return self.title + self.corporation.name + self.owner.username
     
     #TODO does this should be a class method?
     @classmethod

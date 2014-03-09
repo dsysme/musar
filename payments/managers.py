@@ -11,7 +11,9 @@ class ExtraCreditManager(models.Manager):
         return Payment.objects.filter(
             Q(pay_date__isnull=False) 
             & Q(due_date__lt=F('pay_date'))
+            & Q(due_date__lt=date.today())
             | Q(pay_date__isnull=True)
+            & Q(due_date__lt=date.today())
         )
         
         

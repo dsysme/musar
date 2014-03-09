@@ -34,7 +34,7 @@ def index(a_request):
     corporations = Corporation.objects.with_statistics()
     context['best'] = []
     context['worst'] = []
-    if len(corporations) > 3:
+    if len(corporations) > 6:
         if (c.rating > 0 for c in corporations[0:3]):
             context['best'] = corporations[0:3]
         if (c.rating > 0 for c in corporations[-3:]):

@@ -56,14 +56,12 @@ class MyCorporationTable(tables.Table):
 class PaymentsTable(tables.Table):
     extra_credit_days = columns.TemplateColumn('{{ record.extra_credit_days }}', verbose_name=_("Extra Credit Days"))
     credit_days = columns.TemplateColumn('{{ record.credit_days }}', verbose_name=_("Credit Days"))
-#     supply_date = columns.DateColumn()
-#     due_date = columns.DateColumn()
-#     pay_date = columns.DateColumn()
+    corporation = columns.LinkColumn('compare_corporation', kwargs={'corporation': A('corporation.cid')}, verbose_name=_('corporation'))
+
     class Meta:
         model = Payment
-        exclude = ('owner', 'created_at', 'order_date')
+        exclude = ('id','owner', 'created_at', 'order_date')
         sequence = (
-            'id',
             'corporation',
             'title',
             'amount',
